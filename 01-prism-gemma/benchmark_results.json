@@ -1,0 +1,1025 @@
+{
+  "num_scenarios": 12,
+  "localization_summary": {
+    "BM25 / Lexical Grep": {
+      "recall@1": 0.0,
+      "recall@3": 0.3333,
+      "recall@5": 0.7083,
+      "mrr": 0.3507,
+      "root_cause_recall@3": 0.1667,
+      "root_cause_rank": 4.75
+    },
+    "Dense Token Cosine RAG": {
+      "recall@1": 0.0,
+      "recall@3": 0.2917,
+      "recall@5": 0.625,
+      "mrr": 0.2861,
+      "root_cause_recall@3": 0.25,
+      "root_cause_rank": 5.1667
+    },
+    "Uniform RepoMap (PageRank)": {
+      "recall@1": 0.0,
+      "recall@3": 0.2917,
+      "recall@5": 0.6667,
+      "mrr": 0.2786,
+      "root_cause_recall@3": 0.25,
+      "root_cause_rank": 5.1667
+    },
+    "PRISM-Gemma (Full NBD-PPR)": {
+      "recall@1": 0.375,
+      "recall@3": 0.7917,
+      "recall@5": 0.9167,
+      "mrr": 0.8111,
+      "root_cause_recall@3": 0.8333,
+      "root_cause_rank": 2.75
+    },
+    "Ablation: w/o Non-Backtracking (Undirected Walk)": {
+      "recall@1": 0.3333,
+      "recall@3": 0.75,
+      "recall@5": 0.875,
+      "mrr": 0.7736,
+      "root_cause_recall@3": 0.75,
+      "root_cause_rank": 2.6667
+    },
+    "Ablation: w/o Typed Edge Conductance": {
+      "recall@1": 0.375,
+      "recall@3": 0.7917,
+      "recall@5": 0.9167,
+      "mrr": 0.8111,
+      "root_cause_recall@3": 0.8333,
+      "root_cause_rank": 2.8333
+    },
+    "Ablation: w/o Causal Sink Amplification": {
+      "recall@1": 0.375,
+      "recall@3": 0.7917,
+      "recall@5": 0.8333,
+      "mrr": 0.8056,
+      "root_cause_recall@3": 0.8333,
+      "root_cause_rank": 3.0833
+    },
+    "Ablation: 1-Hop Neighborhood Only (K=1)": {
+      "recall@1": 0.0417,
+      "recall@3": 0.4583,
+      "recall@5": 0.7917,
+      "mrr": 0.409,
+      "root_cause_recall@3": 0.4167,
+      "root_cause_rank": 4.3333
+    },
+    "Ablation: 2-Hop Neighborhood Only (K=2)": {
+      "recall@1": 0.25,
+      "recall@3": 0.625,
+      "recall@5": 0.75,
+      "mrr": 0.6349,
+      "root_cause_recall@3": 0.75,
+      "root_cause_rank": 3.25
+    }
+  },
+  "kv_cache_prefix_hit_rate_pct": {
+    "relevance_desc": 62.44,
+    "alphabetical": 62.33,
+    "prism_topo_kv": 99.2
+  },
+  "grpo_reward_shaping_analysis": {
+    "hard_regime_informative_gradient_pct_sparse": 0.0,
+    "hard_regime_informative_gradient_pct_gprs": 100.0,
+    "kendall_concordance_with_oracle_progress": 0.85
+  },
+  "per_scenario": [
+    {
+      "id": "SWE-HOP-01",
+      "category": "Inheritance & Coercion Chain (3-Hop)",
+      "results": {
+        "BM25 / Lexical Grep": {
+          "recall@1": 0.0,
+          "recall@3": 0.0,
+          "recall@5": 0.0,
+          "mrr": 0.125,
+          "root_cause_recall@3": 0.0,
+          "root_cause_rank": 8.0
+        },
+        "Dense Token Cosine RAG": {
+          "recall@1": 0.0,
+          "recall@3": 0.0,
+          "recall@5": 0.0,
+          "mrr": 0.1,
+          "root_cause_recall@3": 0.0,
+          "root_cause_rank": 12.0
+        },
+        "Uniform RepoMap (PageRank)": {
+          "recall@1": 0.0,
+          "recall@3": 0.0,
+          "recall@5": 0.0,
+          "mrr": 0.125,
+          "root_cause_recall@3": 0.0,
+          "root_cause_rank": 9.0
+        },
+        "PRISM-Gemma (Full NBD-PPR)": {
+          "recall@1": 0.5,
+          "recall@3": 1.0,
+          "recall@5": 1.0,
+          "mrr": 1.0,
+          "root_cause_recall@3": 1.0,
+          "root_cause_rank": 1.0
+        },
+        "Ablation: w/o Non-Backtracking (Undirected Walk)": {
+          "recall@1": 0.0,
+          "recall@3": 0.5,
+          "recall@5": 0.5,
+          "mrr": 0.5,
+          "root_cause_recall@3": 0.0,
+          "root_cause_rank": 7.0
+        },
+        "Ablation: w/o Typed Edge Conductance": {
+          "recall@1": 0.5,
+          "recall@3": 1.0,
+          "recall@5": 1.0,
+          "mrr": 1.0,
+          "root_cause_recall@3": 1.0,
+          "root_cause_rank": 1.0
+        },
+        "Ablation: w/o Causal Sink Amplification": {
+          "recall@1": 0.5,
+          "recall@3": 1.0,
+          "recall@5": 1.0,
+          "mrr": 1.0,
+          "root_cause_recall@3": 1.0,
+          "root_cause_rank": 2.0
+        },
+        "Ablation: 1-Hop Neighborhood Only (K=1)": {
+          "recall@1": 0.0,
+          "recall@3": 0.0,
+          "recall@5": 0.0,
+          "mrr": 0.125,
+          "root_cause_recall@3": 0.0,
+          "root_cause_rank": 11.0
+        },
+        "Ablation: 2-Hop Neighborhood Only (K=2)": {
+          "recall@1": 0.0,
+          "recall@3": 0.5,
+          "recall@5": 0.5,
+          "mrr": 0.3333333333333333,
+          "root_cause_recall@3": 0.0,
+          "root_cause_rank": 7.0
+        }
+      }
+    },
+    {
+      "id": "SWE-HOP-02",
+      "category": "Stack Trace AST Dialect Propagation (3-Hop)",
+      "results": {
+        "BM25 / Lexical Grep": {
+          "recall@1": 0.0,
+          "recall@3": 0.0,
+          "recall@5": 0.5,
+          "mrr": 0.25,
+          "root_cause_recall@3": 0.0,
+          "root_cause_rank": 4.0
+        },
+        "Dense Token Cosine RAG": {
+          "recall@1": 0.0,
+          "recall@3": 0.0,
+          "recall@5": 0.0,
+          "mrr": 0.16666666666666666,
+          "root_cause_recall@3": 0.0,
+          "root_cause_rank": 6.0
+        },
+        "Uniform RepoMap (PageRank)": {
+          "recall@1": 0.0,
+          "recall@3": 0.0,
+          "recall@5": 0.0,
+          "mrr": 0.125,
+          "root_cause_recall@3": 0.0,
+          "root_cause_rank": 8.0
+        },
+        "PRISM-Gemma (Full NBD-PPR)": {
+          "recall@1": 0.0,
+          "recall@3": 0.0,
+          "recall@5": 0.5,
+          "mrr": 0.2,
+          "root_cause_recall@3": 0.0,
+          "root_cause_rank": 8.0
+        },
+        "Ablation: w/o Non-Backtracking (Undirected Walk)": {
+          "recall@1": 0.0,
+          "recall@3": 0.0,
+          "recall@5": 0.5,
+          "mrr": 0.2,
+          "root_cause_recall@3": 0.0,
+          "root_cause_rank": 8.0
+        },
+        "Ablation: w/o Typed Edge Conductance": {
+          "recall@1": 0.0,
+          "recall@3": 0.0,
+          "recall@5": 0.5,
+          "mrr": 0.2,
+          "root_cause_recall@3": 0.0,
+          "root_cause_rank": 8.0
+        },
+        "Ablation: w/o Causal Sink Amplification": {
+          "recall@1": 0.0,
+          "recall@3": 0.0,
+          "recall@5": 0.0,
+          "mrr": 0.16666666666666666,
+          "root_cause_recall@3": 0.0,
+          "root_cause_rank": 10.0
+        },
+        "Ablation: 1-Hop Neighborhood Only (K=1)": {
+          "recall@1": 0.0,
+          "recall@3": 0.0,
+          "recall@5": 0.0,
+          "mrr": 0.16666666666666666,
+          "root_cause_recall@3": 0.0,
+          "root_cause_rank": 6.0
+        },
+        "Ablation: 2-Hop Neighborhood Only (K=2)": {
+          "recall@1": 0.0,
+          "recall@3": 0.0,
+          "recall@5": 0.0,
+          "mrr": 0.14285714285714285,
+          "root_cause_recall@3": 0.0,
+          "root_cause_rank": 9.0
+        }
+      }
+    },
+    {
+      "id": "SWE-HOP-03",
+      "category": "Decorator & Key Canonicalization (3-Hop)",
+      "results": {
+        "BM25 / Lexical Grep": {
+          "recall@1": 0.0,
+          "recall@3": 0.5,
+          "recall@5": 1.0,
+          "mrr": 0.3333333333333333,
+          "root_cause_recall@3": 0.0,
+          "root_cause_rank": 4.0
+        },
+        "Dense Token Cosine RAG": {
+          "recall@1": 0.0,
+          "recall@3": 0.5,
+          "recall@5": 0.5,
+          "mrr": 0.3333333333333333,
+          "root_cause_recall@3": 1.0,
+          "root_cause_rank": 3.0
+        },
+        "Uniform RepoMap (PageRank)": {
+          "recall@1": 0.0,
+          "recall@3": 0.0,
+          "recall@5": 0.5,
+          "mrr": 0.2,
+          "root_cause_recall@3": 0.0,
+          "root_cause_rank": 5.0
+        },
+        "PRISM-Gemma (Full NBD-PPR)": {
+          "recall@1": 0.0,
+          "recall@3": 0.5,
+          "recall@5": 1.0,
+          "mrr": 0.3333333333333333,
+          "root_cause_recall@3": 1.0,
+          "root_cause_rank": 3.0
+        },
+        "Ablation: w/o Non-Backtracking (Undirected Walk)": {
+          "recall@1": 0.0,
+          "recall@3": 0.5,
+          "recall@5": 1.0,
+          "mrr": 0.3333333333333333,
+          "root_cause_recall@3": 1.0,
+          "root_cause_rank": 3.0
+        },
+        "Ablation: w/o Typed Edge Conductance": {
+          "recall@1": 0.0,
+          "recall@3": 0.5,
+          "recall@5": 1.0,
+          "mrr": 0.3333333333333333,
+          "root_cause_recall@3": 1.0,
+          "root_cause_rank": 3.0
+        },
+        "Ablation: w/o Causal Sink Amplification": {
+          "recall@1": 0.0,
+          "recall@3": 0.5,
+          "recall@5": 1.0,
+          "mrr": 0.3333333333333333,
+          "root_cause_recall@3": 1.0,
+          "root_cause_rank": 3.0
+        },
+        "Ablation: 1-Hop Neighborhood Only (K=1)": {
+          "recall@1": 0.0,
+          "recall@3": 0.0,
+          "recall@5": 1.0,
+          "mrr": 0.25,
+          "root_cause_recall@3": 0.0,
+          "root_cause_rank": 5.0
+        },
+        "Ablation: 2-Hop Neighborhood Only (K=2)": {
+          "recall@1": 0.0,
+          "recall@3": 0.5,
+          "recall@5": 0.5,
+          "mrr": 0.3333333333333333,
+          "root_cause_recall@3": 1.0,
+          "root_cause_rank": 3.0
+        }
+      }
+    },
+    {
+      "id": "SWE-HOP-04",
+      "category": "Exception Hierarchy & Retry Policy (3-Hop)",
+      "results": {
+        "BM25 / Lexical Grep": {
+          "recall@1": 0.0,
+          "recall@3": 0.5,
+          "recall@5": 0.5,
+          "mrr": 0.3333333333333333,
+          "root_cause_recall@3": 1.0,
+          "root_cause_rank": 3.0
+        },
+        "Dense Token Cosine RAG": {
+          "recall@1": 0.0,
+          "recall@3": 0.0,
+          "recall@5": 0.0,
+          "mrr": 0.16666666666666666,
+          "root_cause_recall@3": 0.0,
+          "root_cause_rank": 6.0
+        },
+        "Uniform RepoMap (PageRank)": {
+          "recall@1": 0.0,
+          "recall@3": 0.0,
+          "recall@5": 0.0,
+          "mrr": 0.14285714285714285,
+          "root_cause_recall@3": 0.0,
+          "root_cause_rank": 7.0
+        },
+        "PRISM-Gemma (Full NBD-PPR)": {
+          "recall@1": 0.0,
+          "recall@3": 0.0,
+          "recall@5": 0.5,
+          "mrr": 0.2,
+          "root_cause_recall@3": 0.0,
+          "root_cause_rank": 8.0
+        },
+        "Ablation: w/o Non-Backtracking (Undirected Walk)": {
+          "recall@1": 0.0,
+          "recall@3": 0.0,
+          "recall@5": 0.5,
+          "mrr": 0.25,
+          "root_cause_recall@3": 0.0,
+          "root_cause_rank": 6.0
+        },
+        "Ablation: w/o Typed Edge Conductance": {
+          "recall@1": 0.0,
+          "recall@3": 0.0,
+          "recall@5": 0.5,
+          "mrr": 0.2,
+          "root_cause_recall@3": 0.0,
+          "root_cause_rank": 8.0
+        },
+        "Ablation: w/o Causal Sink Amplification": {
+          "recall@1": 0.0,
+          "recall@3": 0.0,
+          "recall@5": 0.0,
+          "mrr": 0.16666666666666666,
+          "root_cause_recall@3": 0.0,
+          "root_cause_rank": 9.0
+        },
+        "Ablation: 1-Hop Neighborhood Only (K=1)": {
+          "recall@1": 0.0,
+          "recall@3": 0.0,
+          "recall@5": 0.5,
+          "mrr": 0.2,
+          "root_cause_recall@3": 0.0,
+          "root_cause_rank": 5.0
+        },
+        "Ablation: 2-Hop Neighborhood Only (K=2)": {
+          "recall@1": 0.0,
+          "recall@3": 0.0,
+          "recall@5": 0.0,
+          "mrr": 0.14285714285714285,
+          "root_cause_recall@3": 0.0,
+          "root_cause_rank": 7.0
+        }
+      }
+    },
+    {
+      "id": "SWE-HOP-05",
+      "category": "Tensor Mask Polarity Inversion (2-Hop)",
+      "results": {
+        "BM25 / Lexical Grep": {
+          "recall@1": 0.0,
+          "recall@3": 0.5,
+          "recall@5": 0.5,
+          "mrr": 0.5,
+          "root_cause_recall@3": 0.0,
+          "root_cause_rank": 6.0
+        },
+        "Dense Token Cosine RAG": {
+          "recall@1": 0.0,
+          "recall@3": 0.5,
+          "recall@5": 1.0,
+          "mrr": 0.3333333333333333,
+          "root_cause_recall@3": 0.0,
+          "root_cause_rank": 5.0
+        },
+        "Uniform RepoMap (PageRank)": {
+          "recall@1": 0.0,
+          "recall@3": 0.5,
+          "recall@5": 1.0,
+          "mrr": 0.3333333333333333,
+          "root_cause_recall@3": 0.0,
+          "root_cause_rank": 4.0
+        },
+        "PRISM-Gemma (Full NBD-PPR)": {
+          "recall@1": 0.5,
+          "recall@3": 1.0,
+          "recall@5": 1.0,
+          "mrr": 1.0,
+          "root_cause_recall@3": 1.0,
+          "root_cause_rank": 2.0
+        },
+        "Ablation: w/o Non-Backtracking (Undirected Walk)": {
+          "recall@1": 0.5,
+          "recall@3": 1.0,
+          "recall@5": 1.0,
+          "mrr": 1.0,
+          "root_cause_recall@3": 1.0,
+          "root_cause_rank": 1.0
+        },
+        "Ablation: w/o Typed Edge Conductance": {
+          "recall@1": 0.5,
+          "recall@3": 1.0,
+          "recall@5": 1.0,
+          "mrr": 1.0,
+          "root_cause_recall@3": 1.0,
+          "root_cause_rank": 2.0
+        },
+        "Ablation: w/o Causal Sink Amplification": {
+          "recall@1": 0.5,
+          "recall@3": 1.0,
+          "recall@5": 1.0,
+          "mrr": 1.0,
+          "root_cause_recall@3": 1.0,
+          "root_cause_rank": 2.0
+        },
+        "Ablation: 1-Hop Neighborhood Only (K=1)": {
+          "recall@1": 0.5,
+          "recall@3": 1.0,
+          "recall@5": 1.0,
+          "mrr": 1.0,
+          "root_cause_recall@3": 1.0,
+          "root_cause_rank": 1.0
+        },
+        "Ablation: 2-Hop Neighborhood Only (K=2)": {
+          "recall@1": 0.5,
+          "recall@3": 1.0,
+          "recall@5": 1.0,
+          "mrr": 1.0,
+          "root_cause_recall@3": 1.0,
+          "root_cause_rank": 2.0
+        }
+      }
+    },
+    {
+      "id": "SWE-HOP-06",
+      "category": "Precedence Inversion in Config Loader (2-Hop)",
+      "results": {
+        "BM25 / Lexical Grep": {
+          "recall@1": 0.0,
+          "recall@3": 0.5,
+          "recall@5": 1.0,
+          "mrr": 0.3333333333333333,
+          "root_cause_recall@3": 1.0,
+          "root_cause_rank": 3.0
+        },
+        "Dense Token Cosine RAG": {
+          "recall@1": 0.0,
+          "recall@3": 0.5,
+          "recall@5": 0.5,
+          "mrr": 0.3333333333333333,
+          "root_cause_recall@3": 1.0,
+          "root_cause_rank": 3.0
+        },
+        "Uniform RepoMap (PageRank)": {
+          "recall@1": 0.0,
+          "recall@3": 0.5,
+          "recall@5": 1.0,
+          "mrr": 0.3333333333333333,
+          "root_cause_recall@3": 1.0,
+          "root_cause_rank": 3.0
+        },
+        "PRISM-Gemma (Full NBD-PPR)": {
+          "recall@1": 0.5,
+          "recall@3": 1.0,
+          "recall@5": 1.0,
+          "mrr": 1.0,
+          "root_cause_recall@3": 1.0,
+          "root_cause_rank": 2.0
+        },
+        "Ablation: w/o Non-Backtracking (Undirected Walk)": {
+          "recall@1": 0.5,
+          "recall@3": 1.0,
+          "recall@5": 1.0,
+          "mrr": 1.0,
+          "root_cause_recall@3": 1.0,
+          "root_cause_rank": 1.0
+        },
+        "Ablation: w/o Typed Edge Conductance": {
+          "recall@1": 0.5,
+          "recall@3": 1.0,
+          "recall@5": 1.0,
+          "mrr": 1.0,
+          "root_cause_recall@3": 1.0,
+          "root_cause_rank": 2.0
+        },
+        "Ablation: w/o Causal Sink Amplification": {
+          "recall@1": 0.5,
+          "recall@3": 1.0,
+          "recall@5": 1.0,
+          "mrr": 1.0,
+          "root_cause_recall@3": 1.0,
+          "root_cause_rank": 2.0
+        },
+        "Ablation: 1-Hop Neighborhood Only (K=1)": {
+          "recall@1": 0.0,
+          "recall@3": 1.0,
+          "recall@5": 1.0,
+          "mrr": 0.5,
+          "root_cause_recall@3": 1.0,
+          "root_cause_rank": 2.0
+        },
+        "Ablation: 2-Hop Neighborhood Only (K=2)": {
+          "recall@1": 0.5,
+          "recall@3": 1.0,
+          "recall@5": 1.0,
+          "mrr": 1.0,
+          "root_cause_recall@3": 1.0,
+          "root_cause_rank": 1.0
+        }
+      }
+    },
+    {
+      "id": "SWE-HOP-07",
+      "category": "DFS Cycle Visited-Set Ordering (2-Hop)",
+      "results": {
+        "BM25 / Lexical Grep": {
+          "recall@1": 0.0,
+          "recall@3": 0.5,
+          "recall@5": 1.0,
+          "mrr": 0.3333333333333333,
+          "root_cause_recall@3": 0.0,
+          "root_cause_rank": 4.0
+        },
+        "Dense Token Cosine RAG": {
+          "recall@1": 0.0,
+          "recall@3": 0.5,
+          "recall@5": 1.0,
+          "mrr": 0.3333333333333333,
+          "root_cause_recall@3": 1.0,
+          "root_cause_rank": 3.0
+        },
+        "Uniform RepoMap (PageRank)": {
+          "recall@1": 0.0,
+          "recall@3": 0.5,
+          "recall@5": 1.0,
+          "mrr": 0.3333333333333333,
+          "root_cause_recall@3": 1.0,
+          "root_cause_rank": 3.0
+        },
+        "PRISM-Gemma (Full NBD-PPR)": {
+          "recall@1": 0.5,
+          "recall@3": 1.0,
+          "recall@5": 1.0,
+          "mrr": 1.0,
+          "root_cause_recall@3": 1.0,
+          "root_cause_rank": 2.0
+        },
+        "Ablation: w/o Non-Backtracking (Undirected Walk)": {
+          "recall@1": 0.5,
+          "recall@3": 1.0,
+          "recall@5": 1.0,
+          "mrr": 1.0,
+          "root_cause_recall@3": 1.0,
+          "root_cause_rank": 1.0
+        },
+        "Ablation: w/o Typed Edge Conductance": {
+          "recall@1": 0.5,
+          "recall@3": 1.0,
+          "recall@5": 1.0,
+          "mrr": 1.0,
+          "root_cause_recall@3": 1.0,
+          "root_cause_rank": 2.0
+        },
+        "Ablation: w/o Causal Sink Amplification": {
+          "recall@1": 0.5,
+          "recall@3": 1.0,
+          "recall@5": 1.0,
+          "mrr": 1.0,
+          "root_cause_recall@3": 1.0,
+          "root_cause_rank": 2.0
+        },
+        "Ablation: 1-Hop Neighborhood Only (K=1)": {
+          "recall@1": 0.0,
+          "recall@3": 0.5,
+          "recall@5": 1.0,
+          "mrr": 0.5,
+          "root_cause_recall@3": 1.0,
+          "root_cause_rank": 2.0
+        },
+        "Ablation: 2-Hop Neighborhood Only (K=2)": {
+          "recall@1": 0.5,
+          "recall@3": 1.0,
+          "recall@5": 1.0,
+          "mrr": 1.0,
+          "root_cause_recall@3": 1.0,
+          "root_cause_rank": 1.0
+        }
+      }
+    },
+    {
+      "id": "SWE-HOP-08",
+      "category": "Leeway Sign Error via Base Class (3-Hop)",
+      "results": {
+        "BM25 / Lexical Grep": {
+          "recall@1": 0.0,
+          "recall@3": 0.5,
+          "recall@5": 1.0,
+          "mrr": 0.5,
+          "root_cause_recall@3": 0.0,
+          "root_cause_rank": 5.0
+        },
+        "Dense Token Cosine RAG": {
+          "recall@1": 0.0,
+          "recall@3": 0.5,
+          "recall@5": 1.0,
+          "mrr": 0.3333333333333333,
+          "root_cause_recall@3": 0.0,
+          "root_cause_rank": 5.0
+        },
+        "Uniform RepoMap (PageRank)": {
+          "recall@1": 0.0,
+          "recall@3": 0.5,
+          "recall@5": 1.0,
+          "mrr": 0.5,
+          "root_cause_recall@3": 0.0,
+          "root_cause_rank": 5.0
+        },
+        "PRISM-Gemma (Full NBD-PPR)": {
+          "recall@1": 0.5,
+          "recall@3": 1.0,
+          "recall@5": 1.0,
+          "mrr": 1.0,
+          "root_cause_recall@3": 1.0,
+          "root_cause_rank": 2.0
+        },
+        "Ablation: w/o Non-Backtracking (Undirected Walk)": {
+          "recall@1": 0.5,
+          "recall@3": 1.0,
+          "recall@5": 1.0,
+          "mrr": 1.0,
+          "root_cause_recall@3": 1.0,
+          "root_cause_rank": 1.0
+        },
+        "Ablation: w/o Typed Edge Conductance": {
+          "recall@1": 0.5,
+          "recall@3": 1.0,
+          "recall@5": 1.0,
+          "mrr": 1.0,
+          "root_cause_recall@3": 1.0,
+          "root_cause_rank": 2.0
+        },
+        "Ablation: w/o Causal Sink Amplification": {
+          "recall@1": 0.5,
+          "recall@3": 1.0,
+          "recall@5": 1.0,
+          "mrr": 1.0,
+          "root_cause_recall@3": 1.0,
+          "root_cause_rank": 2.0
+        },
+        "Ablation: 1-Hop Neighborhood Only (K=1)": {
+          "recall@1": 0.0,
+          "recall@3": 0.5,
+          "recall@5": 1.0,
+          "mrr": 0.3333333333333333,
+          "root_cause_recall@3": 0.0,
+          "root_cause_rank": 5.0
+        },
+        "Ablation: 2-Hop Neighborhood Only (K=2)": {
+          "recall@1": 0.5,
+          "recall@3": 0.5,
+          "recall@5": 1.0,
+          "mrr": 1.0,
+          "root_cause_recall@3": 1.0,
+          "root_cause_rank": 1.0
+        }
+      }
+    },
+    {
+      "id": "SWE-HOP-09",
+      "category": "Streaming Multi-Byte Boundary Split (2-Hop)",
+      "results": {
+        "BM25 / Lexical Grep": {
+          "recall@1": 0.0,
+          "recall@3": 0.0,
+          "recall@5": 0.5,
+          "mrr": 0.25,
+          "root_cause_recall@3": 0.0,
+          "root_cause_rank": 4.0
+        },
+        "Dense Token Cosine RAG": {
+          "recall@1": 0.0,
+          "recall@3": 0.0,
+          "recall@5": 1.0,
+          "mrr": 0.25,
+          "root_cause_recall@3": 0.0,
+          "root_cause_rank": 5.0
+        },
+        "Uniform RepoMap (PageRank)": {
+          "recall@1": 0.0,
+          "recall@3": 0.0,
+          "recall@5": 0.5,
+          "mrr": 0.25,
+          "root_cause_recall@3": 0.0,
+          "root_cause_rank": 6.0
+        },
+        "PRISM-Gemma (Full NBD-PPR)": {
+          "recall@1": 0.5,
+          "recall@3": 1.0,
+          "recall@5": 1.0,
+          "mrr": 1.0,
+          "root_cause_recall@3": 1.0,
+          "root_cause_rank": 1.0
+        },
+        "Ablation: w/o Non-Backtracking (Undirected Walk)": {
+          "recall@1": 0.5,
+          "recall@3": 1.0,
+          "recall@5": 1.0,
+          "mrr": 1.0,
+          "root_cause_recall@3": 1.0,
+          "root_cause_rank": 1.0
+        },
+        "Ablation: w/o Typed Edge Conductance": {
+          "recall@1": 0.5,
+          "recall@3": 1.0,
+          "recall@5": 1.0,
+          "mrr": 1.0,
+          "root_cause_recall@3": 1.0,
+          "root_cause_rank": 1.0
+        },
+        "Ablation: w/o Causal Sink Amplification": {
+          "recall@1": 0.5,
+          "recall@3": 1.0,
+          "recall@5": 1.0,
+          "mrr": 1.0,
+          "root_cause_recall@3": 1.0,
+          "root_cause_rank": 1.0
+        },
+        "Ablation: 1-Hop Neighborhood Only (K=1)": {
+          "recall@1": 0.0,
+          "recall@3": 1.0,
+          "recall@5": 1.0,
+          "mrr": 0.5,
+          "root_cause_recall@3": 1.0,
+          "root_cause_rank": 3.0
+        },
+        "Ablation: 2-Hop Neighborhood Only (K=2)": {
+          "recall@1": 0.5,
+          "recall@3": 1.0,
+          "recall@5": 1.0,
+          "mrr": 1.0,
+          "root_cause_recall@3": 1.0,
+          "root_cause_rank": 1.0
+        }
+      }
+    },
+    {
+      "id": "SWE-HOP-10",
+      "category": "Multi-Hunk Offset Drift in Patch Applier (2-Hop)",
+      "results": {
+        "BM25 / Lexical Grep": {
+          "recall@1": 0.0,
+          "recall@3": 0.0,
+          "recall@5": 1.0,
+          "mrr": 0.25,
+          "root_cause_recall@3": 0.0,
+          "root_cause_rank": 4.0
+        },
+        "Dense Token Cosine RAG": {
+          "recall@1": 0.0,
+          "recall@3": 0.0,
+          "recall@5": 1.0,
+          "mrr": 0.25,
+          "root_cause_recall@3": 0.0,
+          "root_cause_rank": 4.0
+        },
+        "Uniform RepoMap (PageRank)": {
+          "recall@1": 0.0,
+          "recall@3": 0.5,
+          "recall@5": 1.0,
+          "mrr": 0.3333333333333333,
+          "root_cause_recall@3": 1.0,
+          "root_cause_rank": 3.0
+        },
+        "PRISM-Gemma (Full NBD-PPR)": {
+          "recall@1": 0.5,
+          "recall@3": 1.0,
+          "recall@5": 1.0,
+          "mrr": 1.0,
+          "root_cause_recall@3": 1.0,
+          "root_cause_rank": 2.0
+        },
+        "Ablation: w/o Non-Backtracking (Undirected Walk)": {
+          "recall@1": 0.5,
+          "recall@3": 1.0,
+          "recall@5": 1.0,
+          "mrr": 1.0,
+          "root_cause_recall@3": 1.0,
+          "root_cause_rank": 1.0
+        },
+        "Ablation: w/o Typed Edge Conductance": {
+          "recall@1": 0.5,
+          "recall@3": 1.0,
+          "recall@5": 1.0,
+          "mrr": 1.0,
+          "root_cause_recall@3": 1.0,
+          "root_cause_rank": 2.0
+        },
+        "Ablation: w/o Causal Sink Amplification": {
+          "recall@1": 0.5,
+          "recall@3": 1.0,
+          "recall@5": 1.0,
+          "mrr": 1.0,
+          "root_cause_recall@3": 1.0,
+          "root_cause_rank": 2.0
+        },
+        "Ablation: 1-Hop Neighborhood Only (K=1)": {
+          "recall@1": 0.0,
+          "recall@3": 0.5,
+          "recall@5": 1.0,
+          "mrr": 0.5,
+          "root_cause_recall@3": 1.0,
+          "root_cause_rank": 2.0
+        },
+        "Ablation: 2-Hop Neighborhood Only (K=2)": {
+          "recall@1": 0.5,
+          "recall@3": 1.0,
+          "recall@5": 1.0,
+          "mrr": 1.0,
+          "root_cause_recall@3": 1.0,
+          "root_cause_rank": 1.0
+        }
+      }
+    },
+    {
+      "id": "SWE-HOP-11",
+      "category": "Keyset Cursor Boundary Duplication (3-Hop)",
+      "results": {
+        "BM25 / Lexical Grep": {
+          "recall@1": 0.0,
+          "recall@3": 0.5,
+          "recall@5": 0.5,
+          "mrr": 0.5,
+          "root_cause_recall@3": 0.0,
+          "root_cause_rank": 7.0
+        },
+        "Dense Token Cosine RAG": {
+          "recall@1": 0.0,
+          "recall@3": 0.5,
+          "recall@5": 0.5,
+          "mrr": 0.3333333333333333,
+          "root_cause_recall@3": 0.0,
+          "root_cause_rank": 6.0
+        },
+        "Uniform RepoMap (PageRank)": {
+          "recall@1": 0.0,
+          "recall@3": 0.5,
+          "recall@5": 1.0,
+          "mrr": 0.3333333333333333,
+          "root_cause_recall@3": 0.0,
+          "root_cause_rank": 5.0
+        },
+        "PRISM-Gemma (Full NBD-PPR)": {
+          "recall@1": 0.5,
+          "recall@3": 1.0,
+          "recall@5": 1.0,
+          "mrr": 1.0,
+          "root_cause_recall@3": 1.0,
+          "root_cause_rank": 1.0
+        },
+        "Ablation: w/o Non-Backtracking (Undirected Walk)": {
+          "recall@1": 0.5,
+          "recall@3": 1.0,
+          "recall@5": 1.0,
+          "mrr": 1.0,
+          "root_cause_recall@3": 1.0,
+          "root_cause_rank": 1.0
+        },
+        "Ablation: w/o Typed Edge Conductance": {
+          "recall@1": 0.5,
+          "recall@3": 1.0,
+          "recall@5": 1.0,
+          "mrr": 1.0,
+          "root_cause_recall@3": 1.0,
+          "root_cause_rank": 1.0
+        },
+        "Ablation: w/o Causal Sink Amplification": {
+          "recall@1": 0.5,
+          "recall@3": 1.0,
+          "recall@5": 1.0,
+          "mrr": 1.0,
+          "root_cause_recall@3": 1.0,
+          "root_cause_rank": 1.0
+        },
+        "Ablation: 1-Hop Neighborhood Only (K=1)": {
+          "recall@1": 0.0,
+          "recall@3": 0.5,
+          "recall@5": 1.0,
+          "mrr": 0.3333333333333333,
+          "root_cause_recall@3": 0.0,
+          "root_cause_rank": 5.0
+        },
+        "Ablation: 2-Hop Neighborhood Only (K=2)": {
+          "recall@1": 0.0,
+          "recall@3": 0.5,
+          "recall@5": 1.0,
+          "mrr": 0.3333333333333333,
+          "root_cause_recall@3": 1.0,
+          "root_cause_rank": 3.0
+        }
+      }
+    },
+    {
+      "id": "SWE-HOP-12",
+      "category": "Adapter Scaling Factor Inversion (3-Hop)",
+      "results": {
+        "BM25 / Lexical Grep": {
+          "recall@1": 0.0,
+          "recall@3": 0.5,
+          "recall@5": 1.0,
+          "mrr": 0.5,
+          "root_cause_recall@3": 0.0,
+          "root_cause_rank": 5.0
+        },
+        "Dense Token Cosine RAG": {
+          "recall@1": 0.0,
+          "recall@3": 0.5,
+          "recall@5": 1.0,
+          "mrr": 0.5,
+          "root_cause_recall@3": 0.0,
+          "root_cause_rank": 4.0
+        },
+        "Uniform RepoMap (PageRank)": {
+          "recall@1": 0.0,
+          "recall@3": 0.5,
+          "recall@5": 1.0,
+          "mrr": 0.3333333333333333,
+          "root_cause_recall@3": 0.0,
+          "root_cause_rank": 4.0
+        },
+        "PRISM-Gemma (Full NBD-PPR)": {
+          "recall@1": 0.5,
+          "recall@3": 1.0,
+          "recall@5": 1.0,
+          "mrr": 1.0,
+          "root_cause_recall@3": 1.0,
+          "root_cause_rank": 1.0
+        },
+        "Ablation: w/o Non-Backtracking (Undirected Walk)": {
+          "recall@1": 0.5,
+          "recall@3": 1.0,
+          "recall@5": 1.0,
+          "mrr": 1.0,
+          "root_cause_recall@3": 1.0,
+          "root_cause_rank": 1.0
+        },
+        "Ablation: w/o Typed Edge Conductance": {
+          "recall@1": 0.5,
+          "recall@3": 1.0,
+          "recall@5": 1.0,
+          "mrr": 1.0,
+          "root_cause_recall@3": 1.0,
+          "root_cause_rank": 2.0
+        },
+        "Ablation: w/o Causal Sink Amplification": {
+          "recall@1": 0.5,
+          "recall@3": 1.0,
+          "recall@5": 1.0,
+          "mrr": 1.0,
+          "root_cause_recall@3": 1.0,
+          "root_cause_rank": 1.0
+        },
+        "Ablation: 1-Hop Neighborhood Only (K=1)": {
+          "recall@1": 0.0,
+          "recall@3": 0.5,
+          "recall@5": 1.0,
+          "mrr": 0.5,
+          "root_cause_recall@3": 0.0,
+          "root_cause_rank": 5.0
+        },
+        "Ablation: 2-Hop Neighborhood Only (K=2)": {
+          "recall@1": 0.0,
+          "recall@3": 0.5,
+          "recall@5": 1.0,
+          "mrr": 0.3333333333333333,
+          "root_cause_recall@3": 1.0,
+          "root_cause_rank": 3.0
+        }
+      }
+    }
+  ]
+}
