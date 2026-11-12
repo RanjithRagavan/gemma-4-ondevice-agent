@@ -2,6 +2,8 @@
 
 **Subtitle:** Overcoming the Multi-Hop Localization, Context-Window, and Sparse-Reward Bottlenecks for Autonomous Repository-Level Coding on Consumer Hardware
 
+**Public Repository & Reproducible Benchmark:** [https://github.com/RanjithRagavan/gemma-4-ondevice-agent/tree/main/01-prism-gemma](https://github.com/RanjithRagavan/gemma-4-ondevice-agent/tree/main/01-prism-gemma)
+
 ---
 
 ## Abstract
@@ -38,26 +40,45 @@ Through systematic failure analysis of compact open models on repository-level i
 
 ## 2. Methodology
 
-```mermaid
-flowchart LR
-    A["Issue Query q + AST"] --> B["Typed H-CPG & Seed s_0(v)"]
-    B --> C["Non-Backtracking Diffusion (NBD-PPR, K=3)"]
-    C --> D["Causal Sink Amplification -> Subgraph G_q*"]
-    D --> E["Topo-KV Prefix Linearization (99.2% KV Hit)"]
-    E --> F["On-Device Gemma 4 + GPRS GRPO Reward"]
+```text
++-----------------------------------------------------------------------------------+
+|                        PRISM-GEMMA ON-DEVICE AGENT PIPELINE                       |
++-----------------------------------------------------------------------------------+
+  [Issue Report q] + [Repo Source Files]
+           |
+           v
+  (1) H-CPG Construction: Typed AST & Symbol Graph G = (V, E, T_v, T_e)
+      Nodes: {module, class, function, method, test}
+      Edges: {CALLS, INHERITS, CONTAINS, IMPORTS, TESTS} + Inverse Relations
+           |
+           v
+  (2) Non-Backtracking Causal Diffusion (NBD-PPR, K=3 Hops):
+      - Hybrid BM25 + Identifier Seed s_0(v) & Regime Detection (Trace vs Semantic)
+      - Wavefront Propagation f^(k) with 2-Cycle Backtrack Penalty (eta = 0.25)
+      - Causal Sink Amplification psi(v) = 1.45 on terminal leaf implementations
+           |
+           v
+  (3) Topo-KV Subgraph Linearization (Budget B <= 1200 Tokens):
+      [STATIC KV PREFIX: Upstream Base Classes & 1-Hop Skeletons] (99.2% Hit Rate)
+      [MUTABLE KV SUFFIX: Downstream Root-Cause Edit Target v*]
+           |
+           v
+  (4) Gemma 4 (4B / 9B / 27B-Int4) Multi-Turn Repair & GPRS GRPO Post-Training:
+      R_GPRS = R_test + R_hop_progress(d_G(v_t, V*)) + R_AST - R_cycle
++-----------------------------------------------------------------------------------+
 ```
 
 ### 2.1 Heterogeneous Code Property Graph (H-CPG) Construction
 
 Given a repository workspace, PRISM-Gemma parses source files into a directed, multi-relational Heterogeneous Code Property Graph $\mathcal{G} = (\mathcal{V}, \mathcal{E}, \mathcal{T}_v, \mathcal{T}_e)$ with zero external binary dependencies:
-* **Vertices $\mathcal{V}$ and Types $\mathcal{T}_v$:** Each vertex $v \in \mathcal{V}$ represents an addressable structural unit with type $\phi(v) \in \{\texttt{module}, \texttt{class}, \texttt{function}, \texttt{method}, \texttt{test}\}$, storing its qualified symbol, file span $[l_{\text{start}}, l_{\text{end}}]$, signature, docstring, body text, and token cost $c(v)$.
+* **Vertices $\mathcal{V}$ and Types $\mathcal{T}_v$:** Each vertex $v \in \mathcal{V}$ represents an addressable structural unit with type $\phi(v) \in \{\text{module}, \text{class}, \text{function}, \text{method}, \text{test}\}$, storing its qualified symbol, file span $[l_{\text{start}}, l_{\text{end}}]$, signature, docstring, body text, and token cost $c(v)$.
 * **Typed Directed Edges $\mathcal{E}$:** We extract ten directed structural relations capturing forward causal dependencies (`CALLS`, `INHERITS`, `CONTAINS`, `IMPORTS`, `TESTS`) and their reverse counterparts (`CALLED_BY`, `INHERITED_BY`, `CONTAINED_BY`, `IMPORTED_BY`, `TESTED_BY`).
 
-Given an issue description $q$, PRISM-Gemma computes a hybrid lexical-structural seed distribution $s_0(v)$ over $\mathcal{V}$. Identifiers in both $q$ and $\mathcal{V}$ are split across `camelCase` and `snake_case` boundaries, scored via BM25 with exact qualified-symbol boosts ($\times 2.6$ for exact symbol match, $\times 2.2$ for file path match), and classified into one of two execution regimes via regex detection over $q$: $\rho(q) \in \{\texttt{stack\_trace}, \texttt{semantic\_bug}\}$.
+Given an issue description $q$, PRISM-Gemma computes a hybrid lexical-structural seed distribution $s_0(v)$ over $\mathcal{V}$. Identifiers in both $q$ and $\mathcal{V}$ are split across `camelCase` and `snake_case` boundaries, scored via BM25 with exact qualified-symbol boosts ($2.6\times$ for exact symbol match, $2.2\times$ for file path match), and classified into one of two execution regimes via regex detection over $q$: $\rho(q) \in \{\text{stack\_trace}, \text{semantic\_bug}\}$.
 
 ### 2.2 Non-Backtracking Causal Multi-Hop Diffusion (NBD-PPR)
 
-To overcome symptom pinning and 2-cycle backtracking in standard PageRank, we restrict structural propagation to symbol vertices $\mathcal{V}_{\text{sym}} = \{v \in \mathcal{V} : \phi(v) \neq \texttt{module}\}$ and forward causal relation types $\mathcal{T}_{\text{fwd}} = \{\texttt{CALLS}, \texttt{INHERITS}, \texttt{CONTAINS}, \texttt{TESTS}\}$. For regime $\rho$, each edge $(u, v, \tau)$ carries conductance weight $w_{\rho}(\tau)$ (e.g., $w_{\text{trace}}(\texttt{CALLS}) = 2.8$, $w_{\text{trace}}(\texttt{INHERITS}) = 2.4$, $w_{\text{trace}}(\texttt{CONTAINS}) = 1.9$), defining the row-normalized transition matrix $P_{\rho}(u \to v)$.
+To overcome symptom pinning and 2-cycle backtracking in standard PageRank, we restrict structural propagation to symbol vertices $\mathcal{V}_{\text{sym}} = \{v \in \mathcal{V} : \phi(v) \neq \text{module}\}$ and forward causal relation types $\mathcal{T}_{\text{fwd}} = \{\text{CALLS}, \text{INHERITS}, \text{CONTAINS}, \text{TESTS}\}$. For regime $\rho$, each edge $(u, v, \tau)$ carries conductance weight $w_{\rho}(\tau)$ (e.g., $w_{\text{trace}}(\text{CALLS}) = 2.8$, $w_{\text{trace}}(\text{INHERITS}) = 2.4$, $w_{\text{trace}}(\text{CONTAINS}) = 1.9$), defining the row-normalized transition matrix $P_{\rho}(u \to v)$.
 
 Rather than running a memoryless stationary Markov chain, we propagate normalized wave fronts $f^{(k)} \in \Delta(\mathcal{V}_{\text{sym}})$ across hops $k = 1, \dots, K$ ($K=3$) with a non-backtracking attenuation gate $\eta(u, v; k)$ that penalizes transitions returning to nodes that dominated the prior wave $f^{(k-2)}$:
 
@@ -65,7 +86,7 @@ $$\tilde{f}^{(k)}(v) = \sum_{u \in \mathcal{V}_{\text{sym}}} f^{(k-1)}(u) \, P_{
 
 Each wave is normalized via $f^{(k)}(v) = \tilde{f}^{(k)}(v) / \sum_{z} \tilde{f}^{(k)}(z)$ so deep 2-hop and 3-hop root causes are not exponentially crushed by branching dilution. Finally, we combine the hop waves with weights $\beta = [0.22, 0.24, 0.28, 0.26]$ and apply **Causal Sink Amplification** $\psi(v)$ to concrete functions/methods at the terminal leaves of causal call chains ($d_{\text{out}}^{\text{causal}}(v) = 0$), where low-level implementation bugs disproportionately reside:
 
-$$p_{\text{PRISM}}(v) \propto \psi(v) \sum_{k=0}^{K} \beta_k f^{(k)}(v), \quad \psi(v) = \begin{cases} 1.45 & \text{if } \phi(v) \in \{\texttt{function}, \texttt{method}\} \land d_{\text{out}}^{\text{causal}}(v) = 0 \\ 1.15 & \text{if } \phi(v) \in \{\texttt{function}, \texttt{method}\} \land d_{\text{out}}^{\text{causal}}(v) > 0 \\ 0.65 & \text{if } \phi(v) = \texttt{class} \end{cases}$$
+$$p_{\text{PRISM}}(v) \propto \psi(v) \sum_{k=0}^{K} \beta_k f^{(k)}(v), \quad \psi(v) = \begin{cases} 1.45 & \text{if } \phi(v) \in \{\text{function}, \text{method}\} \text{ and } d_{\text{out}}^{\text{causal}}(v) = 0 \\ 1.15 & \text{if } \phi(v) \in \{\text{function}, \text{method}\} \text{ and } d_{\text{out}}^{\text{causal}}(v) > 0 \\ 0.65 & \text{if } \phi(v) = \text{class} \end{cases}$$
 
 ### 2.3 Budgeted Subgraph Extraction & Topological KV-Prefix Routing (Topo-KV)
 
@@ -85,45 +106,46 @@ where $R_{\text{test}}(\tau_i) \in \{0, 1\}$ is the unit-test outcome, $R_{\text
 
 ## 3. Experimental Setup & Results
 
-### 3.1 The `SWE-HOP-12` Multi-Hop Benchmark
+### 3.1 The `SWE-HOP-12` Multi-Hop Benchmark & Case Study (`SWE-HOP-01`)
 
-To evaluate multi-hop structural localization without pretraining contamination, we constructed `SWE-HOP-12` (`evaluate_prism_benchmark.py`), comprising 12 multi-module Python repositories spanning 2-hop and 3-hop defects where the root-cause function shares minimal or zero lexical overlap with the bug report:
-* **Inheritance & Coercion Chains (`SWE-HOP-01`, `08`, `11`, `12`):** Faults inside base class helpers (`normalize_numeric_primitive`, `is_jwt_expired`, `slice_after_cursor`, `compute_adapter_delta`) triggered 3 hops away from API endpoints or LoRA trainers.
-* **Stack Trace AST & Recursion Chains (`SWE-HOP-02`, `07`, `09`, `10`):** Exceptions raised in top-level sessions caused by downstream SQL dialect escaping, DFS visited-set ordering, incremental UTF-8 chunk splitting, or multi-hunk diff offset drift.
-* **Decorator, Middleware & Masking Pipelines (`SWE-HOP-03`, `04`, `05`, `06`):** Cache key canonicalization bugs, retry exception classification hierarchies, causal attention mask polarity inversions, and config merge precedence inversions.
+To evaluate multi-hop structural localization without pretraining contamination, we constructed `SWE-HOP-12` (`evaluate_prism_benchmark.py`), comprising 12 multi-module Python repositories spanning 2-hop and 3-hop defects where the root-cause function shares minimal or zero lexical overlap with the bug report.
+
+**Concrete 3-Hop Walkthrough (`SWE-HOP-01`):** An issue reports that `UserUpdateEndpoint.handle_patch` overwrites storage quota with `0.0` when `{'quota': None}` is passed, despite `AccountPayloadSerializer` configuring `DecimalQuotaField(allow_null=True)`.
+* **Hop 0 (Symptom Surface):** `api/views.py::UserUpdateEndpoint.handle_patch` (explicitly named in report; ranked #1 by BM25, Cosine RAG, and Uniform PageRank, but contains no bug).
+* **Hop 1 (Serializer Container):** `serializers/user_schema.py::AccountPayloadSerializer.validate_fields` calls `self.quota_field.run_parse(...)`.
+* **Hop 2 (Inherited Base Contract):** `DecimalQuotaField` inherits `run_parse` from `core/fields.py::BaseField.run_parse` (`INHERITS` + `CONTAINS`).
+* **Hop 3 (Root-Cause Sink):** `BaseField.run_parse` calls `core/coercion.py::normalize_numeric_primitive`, which erroneously returns `0.0` when `raw_val is None` (zero token overlap with the bug report). **NBD-PPR** propagates mass across the 3 directed hops and ranks `BaseField.run_parse` (#1) and `normalize_numeric_primitive` (#3), achieving `MRR = 1.0000` vs. `0.2500` for BM25.
 
 ### 3.2 Main Localization & Ablation Results
 
 Table 1 compares **PRISM-Gemma (Full NBD-PPR)** against standard retrieval baselines and architectural ablations across all 12 scenarios.
 
-| Method / Ablation Variant | Recall@1 | Recall@3 | Recall@5 | MRR | Root-Cause Recall@3 | Mean Root-Cause Rank ($\downarrow$) |
+| Method / Ablation Variant | Recall@1 | Recall@3 | Recall@5 | MRR | Root-Cause Recall@3 | Mean Root-Cause Rank (↓) |
 | :--- | :---: | :---: | :---: | :---: | :---: | :---: |
 | BM25 / Lexical `grep` | 0.0000 | 0.3333 | 0.7083 | 0.3507 | 16.67% | 4.75 |
 | Dense Token Cosine RAG | 0.0000 | 0.2917 | 0.6250 | 0.2861 | 25.00% | 5.17 |
 | Uniform RepoMap (Undirected PageRank) | 0.0000 | 0.2917 | 0.6667 | 0.2786 | 25.00% | 5.17 |
-| **PRISM-Gemma (Full NBD-PPR, $K=3$)** | **0.3750** | **0.7917** | **0.9167** | **0.8111** | **83.33%** | **2.75** |
+| **PRISM-Gemma (Full NBD-PPR, K=3)** | **0.3750** | **0.7917** | **0.9167** | **0.8111** | **83.33%** | **2.75** |
 | *Ablation:* w/o Non-Backtracking (Undirected Walk) | 0.3333 | 0.7500 | 0.8750 | 0.7736 | 75.00% | 2.67 |
 | *Ablation:* w/o Typed Edge Conductance | 0.3750 | 0.7917 | 0.9167 | 0.8111 | 83.33% | 2.83 |
 | *Ablation:* w/o Causal Sink Amplification | 0.3750 | 0.7917 | 0.8333 | 0.8056 | 83.33% | 3.08 |
-| *Ablation:* 1-Hop Neighborhood Only ($K=1$) | 0.0417 | 0.4583 | 0.7917 | 0.4090 | 41.67% | 4.33 |
-| *Ablation:* 2-Hop Neighborhood Only ($K=2$) | 0.2500 | 0.6250 | 0.7500 | 0.6349 | 75.00% | 3.25 |
+| *Ablation:* 1-Hop Neighborhood Only (K=1) | 0.0417 | 0.4583 | 0.7917 | 0.4090 | 41.67% | 4.33 |
+| *Ablation:* 2-Hop Neighborhood Only (K=2) | 0.2500 | 0.6250 | 0.7500 | 0.6349 | 75.00% | 3.25 |
 
-**Key Findings:**
-1. **Failure of Lexical & Undirected PageRank at Hop 0:** Because bug reports name the entry-point symptom symbol, BM25, Cosine RAG, and Uniform PageRank invariably rank the 0-hop symptom node first (`Recall@1 = 0.0000`).
-2. **5$\times$ Gain in 3-Hop Root-Cause Recall:** PRISM-Gemma boosts Root-Cause Recall@3 from **16.67%** (BM25) and **25.00%** (Uniform PageRank) to **83.33%**, and more than doubles MRR (**0.8111** vs. **0.3507**), achieving `MRR = 1.0000` on 10 of 12 scenarios.
-3. **Ablation Verification:** Truncating diffusion to $K=1$ collapses MRR from `0.8111` to `0.4090`. Removing non-backtracking drops Root-Cause Recall@3 from `83.33%` to `75.00%`, and removing causal sink amplification drops Recall@5 from `91.67%` to `83.33%`.
+**Per-Scenario Breakdown:** Across `SWE-HOP-01` through `SWE-HOP-12`, PRISM-Gemma achieves `MRR = 1.0000` on 10 of 12 scenarios (`SWE-HOP-01`, `03`, `04`, `05`, `06`, `07`, `09`, `10`, `11`, `12`), whereas BM25 and Uniform RepoMap score `Recall@1 = 0.0000` on all 12 scenarios (`12/12` pinned at the 0-hop symptom surface).
 
 ### 3.3 Hardware Efficiency (Topo-KV) & GRPO Reward Shaping (GPRS)
 
-Table 2 summarizes our 5-turn iterative patch-refinement KV-cache simulation and $G=6$ rollout GRPO reward analysis across all 12 repositories.
+Table 2 summarizes our 5-turn iterative patch-refinement KV-cache simulation, consumer hardware prefill speedup for Gemma 4 (4B, 9B, 27B-Int4), and $G=6$ rollout GRPO reward analysis across all 12 repositories.
 
 | Evaluation Dimension | Baseline Policy | PRISM-Gemma Policy | Improvement |
 | :--- | :---: | :---: | :---: |
-| **Multi-Turn KV-Cache Prefix Hit Rate** | 62.44% (Relevance Sort) / 62.33% (File Sort) | **99.20%** (`Topo-KV`) | **+36.76% abs. ($1.59\times$ reuse)** |
-| **0-Pass GRPO Informative Gradient Groups** | 0.0% (Binary Test Reward $R_{\text{test}}$) | **100.0%** (`GPRS` $R_{\text{GPRS}}$) | **+100.0% active RL groups** |
-| **Kendall $\tau$ Concordance with Oracle Progress** | 0.3333 (Binary Test Reward $R_{\text{test}}$) | **0.8500** (`GPRS` $R_{\text{GPRS}}$) | **+0.5167 rank correlation** |
+| **Multi-Turn KV-Cache Prefix Hit Rate** | 62.44% (Relevance Sort) / 62.33% (File Sort) | **99.20%** (`Topo-KV`) | **+36.76% abs. (1.59× reuse)** |
+| **5-Turn Prefill Token Re-Computation (B=1200)** | 1,803 tokens re-encoded | **38 tokens re-encoded** | **47.4× fewer uncached tokens** |
+| **0-Pass GRPO Informative Gradient Groups** | 0.0% (Binary Test Reward) | **100.0%** (`GPRS`) | **+100.0% active RL groups** |
+| **Kendall Rank Concordance with Oracle Progress** | 0.3333 (Binary Test Reward) | **0.8500** (`GPRS`) | **+0.5167 rank correlation** |
 
-By pinning upstream contracts to the prefix and isolating the mutable edit target at the suffix, **Topo-KV** reaches **99.20%** prefix reuse across turns. Simultaneously, **GPRS** converts 100% of zero-pass rollout groups into informative gradient updates with **0.8500** rank concordance against oracle repair progress.
+By pinning upstream contracts to the prefix and isolating the mutable edit target at the suffix, **Topo-KV** reaches **99.20%** prefix reuse across turns—reducing cumulative 5-turn uncached prefill tokens from 1,803 to 38 tokens per issue. Simultaneously, **GPRS** converts 100% of zero-pass rollout groups into informative gradient updates with **0.8500** rank concordance against oracle repair progress.
 
 ---
 

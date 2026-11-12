@@ -1,0 +1,388 @@
+{
+  "num_workloads": 10,
+  "mean_hbm_traffic_reduction_x": 23.42,
+  "max_hbm_traffic_reduction_x": 193.01,
+  "mean_roofline_speedup_x": 4.03,
+  "max_roofline_speedup_x": 12.0,
+  "mean_eager_arithmetic_intensity": 161.61,
+  "mean_fused_arithmetic_intensity": 974.03,
+  "naive_ast_prompt_valid_kernel_rate_pct": 0.0,
+  "polykernel_gemma_valid_kernel_rate_pct": 100.0,
+  "mean_sram_utilization_pct": 86.0,
+  "numerical_verification": {
+    "online_recurrence_max_abs_error": 0.0,
+    "naive_fp16_overflow_rate_pct": 100.0
+  },
+  "workloads": [
+    {
+      "id": "KG-01",
+      "name": "Fused SwiGLU MLP Gate + Up Projection",
+      "naive_llm_baseline": {
+        "has_reduction_hazard": false,
+        "sram_overflow": true,
+        "is_valid_and_safe": false,
+        "naive_sram_kb": 8256.0
+      },
+      "polykernel_gemma": {
+        "total_flops": 739004907520,
+        "eager_hbm_bytes": 878706688,
+        "fused_hbm_bytes": 304087040,
+        "hbm_traffic_reduction_x": 2.89,
+        "eager_arithmetic_intensity": 841.014,
+        "fused_arithmetic_intensity": 2430.241,
+        "eager_latency_ms": 4.4788,
+        "fused_latency_ms": 4.4788,
+        "roofline_speedup_x": 1.0,
+        "sram_footprint_kb": 128.0,
+        "sram_utilization_pct": 100.0,
+        "uses_online_recurrence": false,
+        "num_eliminated_hbm_tensors": 3,
+        "tile_config": {
+          "BLOCK_M": 128,
+          "BLOCK_N": 128,
+          "BLOCK_K": 64,
+          "NUM_STAGES": 2
+        }
+      },
+      "schedule_preview": [
+        "# [POLYKERNEL-GEMMA SCHEDULE] SRAM=128.0KB / 128.0KB",
+        "# Tiling: BLOCK_M=128, BLOCK_N=128, BLOCK_K=64, STAGES=2",
+        "# HBM Loads: x, w_gate, w_up -> HBM Stores: out",
+        "# Eliminated HBM Intermediates (Register-Resident): gate, up, act"
+      ]
+    },
+    {
+      "id": "KG-02",
+      "name": "Fused Residual + RMSNorm + Scale",
+      "naive_llm_baseline": {
+        "has_reduction_hazard": false,
+        "sram_overflow": true,
+        "is_valid_and_safe": false,
+        "naive_sram_kb": 3072.0
+      },
+      "polykernel_gemma": {
+        "total_flops": 100679680,
+        "eager_hbm_bytes": 369139712,
+        "fused_hbm_bytes": 134225920,
+        "hbm_traffic_reduction_x": 2.75,
+        "eager_arithmetic_intensity": 0.273,
+        "fused_arithmetic_intensity": 0.75,
+        "eager_latency_ms": 0.3662,
+        "fused_latency_ms": 0.1332,
+        "roofline_speedup_x": 2.75,
+        "sram_footprint_kb": 98.0,
+        "sram_utilization_pct": 76.6,
+        "uses_online_recurrence": false,
+        "num_eliminated_hbm_tensors": 4,
+        "tile_config": {
+          "BLOCK_M": 128,
+          "BLOCK_N": 64,
+          "BLOCK_K": 64,
+          "NUM_STAGES": 2
+        }
+      },
+      "schedule_preview": [
+        "# [POLYKERNEL-GEMMA SCHEDULE] SRAM=98.0KB / 128.0KB",
+        "# Tiling: BLOCK_M=128, BLOCK_N=64, BLOCK_K=64, STAGES=2",
+        "# HBM Loads: x, residual, weight -> HBM Stores: h, out",
+        "# Eliminated HBM Intermediates (Register-Resident): sq, var, inv_std, normed"
+      ]
+    },
+    {
+      "id": "KG-03",
+      "name": "FlashAttention Online Softmax + Value Aggregation",
+      "naive_llm_baseline": {
+        "has_reduction_hazard": true,
+        "sram_overflow": true,
+        "is_valid_and_safe": false,
+        "naive_sram_kb": 6144.0
+      },
+      "polykernel_gemma": {
+        "total_flops": 35030827008,
+        "eager_hbm_bytes": 1619066882,
+        "fused_hbm_bytes": 8388610,
+        "hbm_traffic_reduction_x": 193.01,
+        "eager_arithmetic_intensity": 21.636,
+        "fused_arithmetic_intensity": 4175.999,
+        "eager_latency_ms": 1.6062,
+        "fused_latency_ms": 0.2123,
+        "roofline_speedup_x": 7.57,
+        "sram_footprint_kb": 128.0,
+        "sram_utilization_pct": 100.0,
+        "uses_online_recurrence": true,
+        "num_eliminated_hbm_tensors": 7,
+        "tile_config": {
+          "BLOCK_M": 128,
+          "BLOCK_N": 128,
+          "BLOCK_K": 64,
+          "NUM_STAGES": 2
+        }
+      },
+      "schedule_preview": [
+        "# [POLYKERNEL-GEMMA SCHEDULE] SRAM=128.0KB / 128.0KB",
+        "# Tiling: BLOCK_M=128, BLOCK_N=128, BLOCK_K=64, STAGES=2",
+        "# HBM Loads: q, k_t, scale, v -> HBM Stores: out",
+        "# Eliminated HBM Intermediates (Register-Resident): scores, scaled, row_max, shifted, probs_unnorm, denom, probs"
+      ]
+    },
+    {
+      "id": "KG-04",
+      "name": "Gemma Softcap Logit Tanh + Online Cross-Entropy LogSumExp",
+      "naive_llm_baseline": {
+        "has_reduction_hazard": true,
+        "sram_overflow": true,
+        "is_valid_and_safe": false,
+        "naive_sram_kb": 24576.0
+      },
+      "polykernel_gemma": {
+        "total_flops": 1879068672,
+        "eager_hbm_bytes": 3221291012,
+        "fused_hbm_bytes": 268443652,
+        "hbm_traffic_reduction_x": 12.0,
+        "eager_arithmetic_intensity": 0.583,
+        "fused_arithmetic_intensity": 7.0,
+        "eager_latency_ms": 3.1957,
+        "fused_latency_ms": 0.2663,
+        "roofline_speedup_x": 12.0,
+        "sram_footprint_kb": 98.0,
+        "sram_utilization_pct": 76.6,
+        "uses_online_recurrence": true,
+        "num_eliminated_hbm_tensors": 8,
+        "tile_config": {
+          "BLOCK_M": 128,
+          "BLOCK_N": 64,
+          "BLOCK_K": 64,
+          "NUM_STAGES": 2
+        }
+      },
+      "schedule_preview": [
+        "# [POLYKERNEL-GEMMA SCHEDULE] SRAM=98.0KB / 128.0KB",
+        "# Tiling: BLOCK_M=128, BLOCK_N=64, BLOCK_K=64, STAGES=2",
+        "# HBM Loads: logits, inv_cap, cap -> HBM Stores: out",
+        "# Eliminated HBM Intermediates (Register-Resident): scaled, t, capped, m, shifted, ex, s, lse"
+      ]
+    },
+    {
+      "id": "KG-05",
+      "name": "Fused GeGLU Feed-Forward Activation",
+      "naive_llm_baseline": {
+        "has_reduction_hazard": false,
+        "sram_overflow": true,
+        "is_valid_and_safe": false,
+        "naive_sram_kb": 12288.0
+      },
+      "polykernel_gemma": {
+        "total_flops": 603979776,
+        "eager_hbm_bytes": 1208025088,
+        "fused_hbm_bytes": 402685952,
+        "hbm_traffic_reduction_x": 3.0,
+        "eager_arithmetic_intensity": 0.5,
+        "fused_arithmetic_intensity": 1.5,
+        "eager_latency_ms": 1.1984,
+        "fused_latency_ms": 0.3995,
+        "roofline_speedup_x": 3.0,
+        "sram_footprint_kb": 98.0,
+        "sram_utilization_pct": 76.6,
+        "uses_online_recurrence": false,
+        "num_eliminated_hbm_tensors": 3,
+        "tile_config": {
+          "BLOCK_M": 128,
+          "BLOCK_N": 64,
+          "BLOCK_K": 64,
+          "NUM_STAGES": 2
+        }
+      },
+      "schedule_preview": [
+        "# [POLYKERNEL-GEMMA SCHEDULE] SRAM=98.0KB / 128.0KB",
+        "# Tiling: BLOCK_M=128, BLOCK_N=64, BLOCK_K=64, STAGES=2",
+        "# HBM Loads: gate_pre, bias, up_pre -> HBM Stores: out",
+        "# Eliminated HBM Intermediates (Register-Resident): g, act, u"
+      ]
+    },
+    {
+      "id": "KG-06",
+      "name": "Int4 Weight-Only Group Dequantization + GEMM + Bias",
+      "naive_llm_baseline": {
+        "has_reduction_hazard": false,
+        "sram_overflow": true,
+        "is_valid_and_safe": false,
+        "naive_sram_kb": 8256.0
+      },
+      "polykernel_gemma": {
+        "total_flops": 184841404416,
+        "eager_hbm_bytes": 557886464,
+        "fused_hbm_bytes": 106998784,
+        "hbm_traffic_reduction_x": 5.21,
+        "eager_arithmetic_intensity": 331.324,
+        "fused_arithmetic_intensity": 1727.509,
+        "eager_latency_ms": 1.1203,
+        "fused_latency_ms": 1.1203,
+        "roofline_speedup_x": 1.0,
+        "sram_footprint_kb": 128.0,
+        "sram_utilization_pct": 100.0,
+        "uses_online_recurrence": false,
+        "num_eliminated_hbm_tensors": 3,
+        "tile_config": {
+          "BLOCK_M": 128,
+          "BLOCK_N": 128,
+          "BLOCK_K": 64,
+          "NUM_STAGES": 2
+        }
+      },
+      "schedule_preview": [
+        "# [POLYKERNEL-GEMMA SCHEDULE] SRAM=128.0KB / 128.0KB",
+        "# Tiling: BLOCK_M=128, BLOCK_N=128, BLOCK_K=64, STAGES=2",
+        "# HBM Loads: w_int4, scales, x, bias -> HBM Stores: out",
+        "# Eliminated HBM Intermediates (Register-Resident): w_fp16, w_scaled, mm"
+      ]
+    },
+    {
+      "id": "KG-07",
+      "name": "Fused RoPE Rotary Positional Embedding + Key Normalization",
+      "naive_llm_baseline": {
+        "has_reduction_hazard": false,
+        "sram_overflow": true,
+        "is_valid_and_safe": false,
+        "naive_sram_kb": 6144.0
+      },
+      "polykernel_gemma": {
+        "total_flops": 14712832,
+        "eager_hbm_bytes": 62980096,
+        "fused_hbm_bytes": 20971520,
+        "hbm_traffic_reduction_x": 3.0,
+        "eager_arithmetic_intensity": 0.234,
+        "fused_arithmetic_intensity": 0.702,
+        "eager_latency_ms": 0.0625,
+        "fused_latency_ms": 0.0208,
+        "roofline_speedup_x": 3.0,
+        "sram_footprint_kb": 98.0,
+        "sram_utilization_pct": 76.6,
+        "uses_online_recurrence": false,
+        "num_eliminated_hbm_tensors": 6,
+        "tile_config": {
+          "BLOCK_M": 128,
+          "BLOCK_N": 64,
+          "BLOCK_K": 64,
+          "NUM_STAGES": 2
+        }
+      },
+      "schedule_preview": [
+        "# [POLYKERNEL-GEMMA SCHEDULE] SRAM=98.0KB / 128.0KB",
+        "# Tiling: BLOCK_M=128, BLOCK_N=64, BLOCK_K=64, STAGES=2",
+        "# HBM Loads: k, cos, k_rot_half, sin -> HBM Stores: out",
+        "# Eliminated HBM Intermediates (Register-Resident): c_part, s_part, rot, sq, var, inv"
+      ]
+    },
+    {
+      "id": "KG-08",
+      "name": "LoRA Dual-Branch Base + Low-Rank Adapter Fusion",
+      "naive_llm_baseline": {
+        "has_reduction_hazard": false,
+        "sram_overflow": true,
+        "is_valid_and_safe": false,
+        "naive_sram_kb": 3072.0
+      },
+      "polykernel_gemma": {
+        "total_flops": 141767475200,
+        "eager_hbm_bytes": 337641474,
+        "fused_hbm_bytes": 101711874,
+        "hbm_traffic_reduction_x": 3.32,
+        "eager_arithmetic_intensity": 419.876,
+        "fused_arithmetic_intensity": 1393.814,
+        "eager_latency_ms": 0.8592,
+        "fused_latency_ms": 0.8592,
+        "roofline_speedup_x": 1.0,
+        "sram_footprint_kb": 128.0,
+        "sram_utilization_pct": 100.0,
+        "uses_online_recurrence": false,
+        "num_eliminated_hbm_tensors": 4,
+        "tile_config": {
+          "BLOCK_M": 128,
+          "BLOCK_N": 128,
+          "BLOCK_K": 64,
+          "NUM_STAGES": 2
+        }
+      },
+      "schedule_preview": [
+        "# [POLYKERNEL-GEMMA SCHEDULE] SRAM=128.0KB / 128.0KB",
+        "# Tiling: BLOCK_M=128, BLOCK_N=128, BLOCK_K=64, STAGES=2",
+        "# HBM Loads: x, w_base, lora_a, lora_b, alpha_scale -> HBM Stores: out",
+        "# Eliminated HBM Intermediates (Register-Resident): base_out, low_rank, adapter, scaled_adapter"
+      ]
+    },
+    {
+      "id": "KG-09",
+      "name": "Fused LayerNorm + Dropout Mask + Residual Projection",
+      "naive_llm_baseline": {
+        "has_reduction_hazard": true,
+        "sram_overflow": true,
+        "is_valid_and_safe": false,
+        "naive_sram_kb": 3072.0
+      },
+      "polykernel_gemma": {
+        "total_flops": 184565760,
+        "eager_hbm_bytes": 637599744,
+        "fused_hbm_bytes": 134234112,
+        "hbm_traffic_reduction_x": 4.75,
+        "eager_arithmetic_intensity": 0.289,
+        "fused_arithmetic_intensity": 1.375,
+        "eager_latency_ms": 0.6325,
+        "fused_latency_ms": 0.1332,
+        "roofline_speedup_x": 4.75,
+        "sram_footprint_kb": 98.0,
+        "sram_utilization_pct": 76.6,
+        "uses_online_recurrence": true,
+        "num_eliminated_hbm_tensors": 9,
+        "tile_config": {
+          "BLOCK_M": 128,
+          "BLOCK_N": 64,
+          "BLOCK_K": 64,
+          "NUM_STAGES": 2
+        }
+      },
+      "schedule_preview": [
+        "# [POLYKERNEL-GEMMA SCHEDULE] SRAM=98.0KB / 128.0KB",
+        "# Tiling: BLOCK_M=128, BLOCK_N=64, BLOCK_K=64, STAGES=2",
+        "# HBM Loads: x, mask, res, gamma, beta -> HBM Stores: out",
+        "# Eliminated HBM Intermediates (Register-Resident): Dropped, added, mu, centered, sq, var, inv, normed, scaled"
+      ]
+    },
+    {
+      "id": "KG-10",
+      "name": "Sigmoid-Gated Highway Linear + Variance Scaling",
+      "naive_llm_baseline": {
+        "has_reduction_hazard": false,
+        "sram_overflow": true,
+        "is_valid_and_safe": false,
+        "naive_sram_kb": 6144.0
+      },
+      "polykernel_gemma": {
+        "total_flops": 369115136,
+        "eager_hbm_bytes": 1140883456,
+        "fused_hbm_bytes": 268435456,
+        "hbm_traffic_reduction_x": 4.25,
+        "eager_arithmetic_intensity": 0.324,
+        "fused_arithmetic_intensity": 1.375,
+        "eager_latency_ms": 1.1318,
+        "fused_latency_ms": 0.2663,
+        "roofline_speedup_x": 4.25,
+        "sram_footprint_kb": 98.0,
+        "sram_utilization_pct": 76.6,
+        "uses_online_recurrence": false,
+        "num_eliminated_hbm_tensors": 7,
+        "tile_config": {
+          "BLOCK_M": 128,
+          "BLOCK_N": 64,
+          "BLOCK_K": 64,
+          "NUM_STAGES": 2
+        }
+      },
+      "schedule_preview": [
+        "# [POLYKERNEL-GEMMA SCHEDULE] SRAM=98.0KB / 128.0KB",
+        "# Tiling: BLOCK_M=128, BLOCK_N=64, BLOCK_K=64, STAGES=2",
+        "# HBM Loads: gate_logits, h, x -> HBM Stores: out",
+        "# Eliminated HBM Intermediates (Register-Resident): g, gated_h, one_minus_g, mixed, sq, v, inv"
+      ]
+    }
+  ]
+}
