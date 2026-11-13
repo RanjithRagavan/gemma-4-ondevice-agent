@@ -8,33 +8,29 @@
 
 ## Abstract
 
-Deploying autonomous software engineering (SWE) agents offline on consumer hardware (16–24 GB unified memory or single-GPU workstations) using compact open models such as Gemma 4 (4B, 9B, and quantized 27B) exposes three fundamental bottlenecks that cloud-scale frontier agents bypass through brute force:
-1. **The Multi-Hop Structural Localization Trap:** When a software defect manifests at a symptom surface $u_{\text{sym}}$ (e.g., an API endpoint or stack-trace frame) while its root cause $v^*$ resides $k \in [2, 4]$ hops away across inheritance hierarchies, decorators, or helper modules with zero lexical overlap, local agents get trapped in repetitive `grep` cycles. Standard undirected PageRank repository maps fail due to *symptom pinning* and *2-cycle backtracking* through module hubs.
-2. **KV-Cache Thrashing Under Strict On-Device Budgets:** Re-ordering or re-reading repository files across multi-turn repair loops invalidates the local KV-cache prefix, inflating Time-To-First-Token (TTFT) and exhausting memory.
-3. **Reward Starvation During Post-Training:** Binary unit-test outcome rewards ($R \in \{0, 1\}$) yield zero variance across rollout groups when post-training compact models via Group Relative Policy Optimization (GRPO) on multi-hop repository tasks.
+Deploying autonomous software engineering (SWE) agents offline on consumer hardware with compact open models such as Gemma 4 exposes three bottlenecks that cloud-scale frontier agents bypass through brute force. First, when a defect's symptom (an API endpoint, a stack-trace frame) sits 2–4 graph hops from its root cause with zero lexical overlap, local agents get trapped in repetitive `grep` cycles, and standard undirected PageRank repo-maps fail via *symptom pinning* and *2-cycle backtracking* through module hubs. Second, relevance-ranked retrieval orders destroy KV-cache prefix reuse across multi-turn repair loops, inflating time-to-first-token on-device. Third, binary unit-test rewards ($R \in \{0,1\}$) starve GRPO post-training of gradient signal whenever every sampled rollout fails — the common regime for small models on multi-hop bugs.
 
-We introduce **PRISM-Gemma** (*Personalized Repository Indexing via Structural Multi-Hop Code-Graphs*), a unified graph-reasoning and post-training framework for on-device Gemma 4 developer agents. First, we formulate **Non-Backtracking Causal Multi-Hop Diffusion (NBD-PPR)** over a typed Heterogeneous Code Property Graph (H-CPG), suppressing 2-step backtracking and module-hub short-circuits while amplifying causal sink implementations. Second, we introduce **Dominator-Topological Prefix Linearization (Topo-KV)**, which orders extracted subgraphs from invariant upstream contracts (base classes, interfaces) at the prompt prefix to mutable edit targets at the suffix. Third, we formulate **Graph-Proximity Reward Shaping (GPRS)** for GRPO post-training, converting shortest-path progress on the repository graph and AST validity into a dense, verifiable training signal. Across our reproducible 12-scenario multi-hop SWE benchmark (`SWE-HOP-12`), PRISM-Gemma boosts Root-Cause Recall@3 from **16.67%** (BM25/`grep`) and **25.00%** (Uniform RepoMap PageRank) to **83.33%**, elevates MRR from **0.3507** to **0.8111**, increases multi-turn KV-cache prefix reuse from **62.44%** to **99.20%**, and achieves **0.8500** Kendall rank concordance with oracle repair progress in zero-pass GRPO regimes.
+We introduce **PRISM-Gemma** (*Personalized Repository Indexing via Structural Multi-Hop Code-Graphs*), a graph-reasoning and post-training framework for on-device Gemma 4 agents with three components: **NBD-PPR**, non-backtracking causal diffusion over a typed Heterogeneous Code Property Graph; **Topo-KV**, dominator-topological prompt linearization that pins invariant upstream contracts to the KV-cache prefix and mutable edit targets to the suffix; and **GPRS**, graph-proximity reward shaping that converts shortest-path progress and AST validity into a dense, verifiable signal.
+
+Crucially, every headline claim is validated **end-to-end with a real on-device Gemma 4 (E4B, Q4-class quantization), not simulation**. On our 12-scenario multi-hop benchmark (`SWE-HOP-12`): (i) PRISM-Gemma lifts root-cause Recall@3 from 16.67% (BM25/`grep`) to **83.33%**; (ii) in live repair sessions, Gemma 4 identifies the root cause in **100%** of scenarios with PRISM context vs. 91.67% with BM25 context, and produces behaviorally verified fixes in **83.33% vs. 75.00%**; (iii) measured KV-cache prefix reuse on a live llama.cpp server reaches **84.95%** vs. 42.56%/32.88% for baseline orderings, cutting mean per-turn prefill latency **~3×** (124 ms vs. 369/416 ms); (iv) across 72 real sampled rollouts in the measured zero-pass regime (1/72 pass), GPRS yields informative GRPO gradient groups in **91.7%** of scenarios vs. **8.3%** for binary rewards, at Kendall $\tau = 0.80$ concordance with oracle repair progress.
 
 ---
 
 ## 1. Introduction
 
-Modern software engineering agents rely heavily on frontier cloud models with 128K–1M token context windows and dozens of iterative bash/search turns per issue. When transitioning to an offline, privacy-preserving on-device setting powered by Gemma 4 (4B/9B/27B-Int4) on consumer hardware, this brute-force paradigm collapses. An on-device agent operating within an 8K–16K effective context window cannot afford 30 exploratory file reads, nor can it afford to re-prefill thousands of context tokens on every turn when drafting and refining patches.
+Modern SWE agents rely on frontier cloud models with 128K–1M token contexts and dozens of exploratory turns per issue. On an offline, privacy-preserving device powered by Gemma 4 (E4B/12B/quantized 26B) with an 8K–16K effective context, this brute-force paradigm collapses: the agent cannot afford 30 file reads, and it cannot re-prefill thousands of tokens every turn. Through failure analysis of compact models on repository-level issue resolution, we identify a trilemma connecting **graph representation**, **hardware-aware context scheduling**, and **reinforcement learning**:
 
-Through systematic failure analysis of compact open models on repository-level issue resolution, we identify a trilemma connecting **graph representation**, **hardware-aware context scheduling**, and **reinforcement learning**:
-
-* **Why Lexical Search and Naive Graph PageRank Fail on Multi-Hop Bugs:** Bug reports typically name the *symptom entry point* $u_{\text{sym}}$ (e.g., `UserUpdateEndpoint.handle_patch` or the top frame of an exception traceback). Yet in modular software architectures, the underlying fault frequently lies 2 to 4 hops downstream—inside an inherited base method (`BaseField.run_parse`), a type coercion utility (`normalize_numeric_primitive`), or a decorator key builder (`derive_digest_key`) that shares *zero identifier tokens* with the user's bug report. While tools like Aider's RepoMap apply standard Personalized PageRank (PPR) over symbol graphs, memoryless random walks suffer from two pathologies on code graphs:
-  1. *Exponential Hop Attenuation & Symptom Pinning:* With damping factor $\alpha$, $(1-\alpha)$ of the probability mass remains permanently pinned at the symptom seed $u_{\text{sym}}$, while nodes at hop $k$ decay as $\alpha^k$.
-  2. *Two-Cycle Backtracking & Module Hub Collapse:* Bi-directional call and containment edges (`CALLS` $\leftrightarrow$ `CALLED_BY`, `CONTAINS` $\leftrightarrow$ `CONTAINED_BY`) cause a standard random walk leaving $u_{\text{sym}}$ at step 1 to bounce immediately back to $u_{\text{sym}}$ or collapse into file-level `<module>` hubs at step 2, starving 3-hop root causes.
-* **Why Relevance-Ranked Contexts Destroy On-Device KV Caching:** Standard RAG pipelines concatenate retrieved code snippets in descending order of relevance score. Because the highest-scoring edit target is placed at the *beginning* of the context and modified across debugging turns, 35–40% of the KV cache is invalidated on every turn.
-* **Why Binary Unit-Test Rewards Starve On-Device RL:** Post-training compact models with GRPO requires non-zero reward variance within each group of $G$ sampled trajectories. On multi-hop bugs, if all $G$ initial rollouts fail the final unit test ($R_{\text{test}} = 0$), the group advantage $\hat{A}_i$ vanishes identically to zero, halting learning even when one rollout navigated to the exact root-cause function and another looped on `grep`.
+* **Why lexical search and naive PageRank fail on multi-hop bugs.** Bug reports name the *symptom* $u_{\text{sym}}$, but the fault often lies 2–4 hops downstream — an inherited base method, a coercion utility, a decorator key builder — sharing zero identifier tokens with the report. Standard Personalized PageRank (as in Aider's RepoMap) suffers *symptom pinning* ($(1-\alpha)$ of mass stays at the seed; hop-$k$ mass decays as $\alpha^k$) and *2-cycle backtracking* (bidirectional `CALLS`/`CALLED_BY` and `CONTAINS`/`CONTAINED_BY` edges bounce the walk back to the seed or into `<module>` hubs).
+* **Why relevance-ranked contexts destroy on-device KV caching.** RAG-style pipelines place the highest-scoring (and thus most-edited) snippet first; editing it invalidates the entire KV prefix on every turn.
+* **Why binary rewards starve small-model RL.** GRPO needs non-zero reward variance within each group of $G$ rollouts. On multi-hop bugs, when all $G$ rollouts fail the tests, the group advantage vanishes — even if one rollout reached the exact root cause and another looped on `grep`.
 
 ### Contributions
 
-1. **Non-Backtracking Causal Multi-Hop Diffusion (NBD-PPR):** A spectral graph propagation algorithm over typed Heterogeneous Code Property Graphs (H-CPGs) that separates execution regimes (`stack_trace` vs. `semantic_bug`), filters module-hub short-circuits, penalizes 2-cycle backtracking, normalizes multi-hop wave fronts across $K=3$ causal hops, and applies causal sink amplification to leaf implementation methods.
-2. **Topological KV-Prefix Routing (Topo-KV):** A deterministic subgraph linearization operator that topologically sorts selected code symbols so upstream contracts occupy the immutable prompt prefix while mutable edit targets sit at the prompt suffix, achieving **99.20%** multi-turn KV-cache prefix hit rate.
-3. **Graph-Proximity Reward Shaping (GPRS) for Gemma 4 GRPO:** A dense, verifiable composite reward function combining unit-test outcomes, exponential shortest-path hop reduction on the H-CPG, AST syntax verification, and cyclic tool-call penalties.
-4. **Open-Source Library & Benchmark (`PRISM-Gemma` & `SWE-HOP-12`):** A zero-dependency Python library (`prism_gemma.py`) and reproducible benchmark suite (`evaluate_prism_benchmark.py`) evaluating 2-to-3 hop architectural software bugs.
+1. **NBD-PPR:** non-backtracking spectral diffusion over a typed H-CPG with regime-conditioned edge conductances, module-hub filtering, per-hop wave normalization, and causal sink amplification.
+2. **Topo-KV:** deterministic subgraph linearization placing upstream contracts in the static prompt prefix and the mutable edit target at the suffix.
+3. **GPRS:** a dense, verifiable composite reward (test outcome + exponential hop-proximity + hop-reduction + AST validity − cyclic-tool penalty) for GRPO on compact models.
+4. **Open-source library & benchmark:** zero-dependency `prism_gemma.py` and the `SWE-HOP-12` suite with per-scenario behavioral tests.
+5. **Real on-device validation:** all efficiency and reward claims measured against a live Gemma 4 E4B (Q4-class) on a consumer laptop (Apple M2 Max), via llama.cpp and MLX — no simulated metrics in headline results.
 
 ---
 
@@ -59,107 +55,132 @@ Through systematic failure analysis of compact open models on repository-level i
            |
            v
   (3) Topo-KV Subgraph Linearization (Budget B <= 1200 Tokens):
-      [STATIC KV PREFIX: Upstream Base Classes & 1-Hop Skeletons] (99.2% Hit Rate)
+      [STATIC KV PREFIX: Upstream Base Classes & 1-Hop Skeletons]
       [MUTABLE KV SUFFIX: Downstream Root-Cause Edit Target v*]
            |
            v
-  (4) Gemma 4 (4B / 9B / 27B-Int4) Multi-Turn Repair & GPRS GRPO Post-Training:
+  (4) Gemma 4 (E4B Q4-class) Multi-Turn Repair & GPRS GRPO Reward:
       R_GPRS = R_test + R_hop_progress(d_G(v_t, V*)) + R_AST - R_cycle
+      Measured on-device: 84.95% KV prefix reuse, 124 ms mean turn prefill
 +-----------------------------------------------------------------------------------+
 ```
 
-### 2.1 Heterogeneous Code Property Graph (H-CPG) Construction
+### 2.1 Heterogeneous Code Property Graph (H-CPG)
 
-Given a repository workspace, PRISM-Gemma parses source files into a directed, multi-relational Heterogeneous Code Property Graph $\mathcal{G} = (\mathcal{V}, \mathcal{E}, \mathcal{T}_v, \mathcal{T}_e)$ with zero external binary dependencies:
-* **Vertices $\mathcal{V}$ and Types $\mathcal{T}_v$:** Each vertex $v \in \mathcal{V}$ represents an addressable structural unit with type $\phi(v) \in \{\text{module}, \text{class}, \text{function}, \text{method}, \text{test}\}$, storing its qualified symbol, file span $[l_{\text{start}}, l_{\text{end}}]$, signature, docstring, body text, and token cost $c(v)$.
-* **Typed Directed Edges $\mathcal{E}$:** We extract ten directed structural relations capturing forward causal dependencies (`CALLS`, `INHERITS`, `CONTAINS`, `IMPORTS`, `TESTS`) and their reverse counterparts (`CALLED_BY`, `INHERITED_BY`, `CONTAINED_BY`, `IMPORTED_BY`, `TESTED_BY`).
-
-Given an issue description $q$, PRISM-Gemma computes a hybrid lexical-structural seed distribution $s_0(v)$ over $\mathcal{V}$. Identifiers in both $q$ and $\mathcal{V}$ are split across `camelCase` and `snake_case` boundaries, scored via BM25 with exact qualified-symbol boosts ($2.6\times$ for exact symbol match, $2.2\times$ for file path match), and classified into one of two execution regimes via regex detection over $q$: $\rho(q) \in \{\text{stack\_trace}, \text{semantic\_bug}\}$.
+PRISM-Gemma parses a repository into a directed multi-relational graph $\mathcal{G} = (\mathcal{V}, \mathcal{E}, \mathcal{T}_v, \mathcal{T}_e)$ with zero external dependencies. Vertices are structural units $\phi(v) \in \{\text{module}, \text{class}, \text{function}, \text{method}, \text{test}\}$ carrying signature, docstring, body, and token cost; ten directed edge types capture forward causal relations (`CALLS`, `INHERITS`, `CONTAINS`, `IMPORTS`, `TESTS`) and their reverses. Given issue $q$, a BM25 seed distribution $s_0(v)$ with camelCase/snake_case splitting, exact-symbol boosts, and a regime classifier $\rho(q) \in \{\text{stack\_trace}, \text{semantic\_bug}\}$ is computed.
 
 ### 2.2 Non-Backtracking Causal Multi-Hop Diffusion (NBD-PPR)
 
-To overcome symptom pinning and 2-cycle backtracking in standard PageRank, we restrict structural propagation to symbol vertices $\mathcal{V}_{\text{sym}} = \{v \in \mathcal{V} : \phi(v) \neq \text{module}\}$ and forward causal relation types $\mathcal{T}_{\text{fwd}} = \{\text{CALLS}, \text{INHERITS}, \text{CONTAINS}, \text{TESTS}\}$. For regime $\rho$, each edge $(u, v, \tau)$ carries conductance weight $w_{\rho}(\tau)$ (e.g., $w_{\text{trace}}(\text{CALLS}) = 2.8$, $w_{\text{trace}}(\text{INHERITS}) = 2.4$, $w_{\text{trace}}(\text{CONTAINS}) = 1.9$), defining the row-normalized transition matrix $P_{\rho}(u \to v)$.
+We restrict propagation to symbol vertices and forward causal edges, with regime-conditioned conductances (e.g., $w_{\text{trace}}(\text{CALLS}) = 2.8$, $w_{\text{trace}}(\text{INHERITS}) = 2.4$) defining a row-normalized transition matrix $P_\rho$. Instead of a memoryless stationary chain, we propagate normalized wave fronts $f^{(k)}$ across $K=3$ hops with a non-backtracking gate $\eta$ that attenuates transitions returning toward the previous wave's dominant nodes:
 
-Rather than running a memoryless stationary Markov chain, we propagate normalized wave fronts $f^{(k)} \in \Delta(\mathcal{V}_{\text{sym}})$ across hops $k = 1, \dots, K$ ($K=3$) with a non-backtracking attenuation gate $\eta(u, v; k)$ that penalizes transitions returning to nodes that dominated the prior wave $f^{(k-2)}$:
+$$\tilde{f}^{(k)}(v) = \sum_{u} f^{(k-1)}(u) \, P_{\rho}(u \to v) \, \eta(u, v; k), \quad \eta = \begin{cases} 0.25 & f^{(k-2)}(v) > f^{(k-1)}(u) \\ 1.0 & \text{otherwise} \end{cases}$$
 
-$$\tilde{f}^{(k)}(v) = \sum_{u \in \mathcal{V}_{\text{sym}}} f^{(k-1)}(u) \, P_{\rho}(u \to v) \, \eta(u, v; k), \quad \eta(u, v; k) = \begin{cases} 0.25 & \text{if } f^{(k-2)}(v) > f^{(k-1)}(u) \\ 1.0 & \text{otherwise} \end{cases}$$
+Each wave is $L_1$-normalized so deep hops are not exponentially starved; hop waves are combined with $\beta = [0.22, 0.24, 0.28, 0.26]$, and a **causal sink amplification** $\psi(v)$ boosts terminal implementation functions ($d_{\text{out}}^{\text{causal}}(v) = 0$, $\times 1.45$), where low-level bugs disproportionately reside.
 
-Each wave is normalized via $f^{(k)}(v) = \tilde{f}^{(k)}(v) / \sum_{z} \tilde{f}^{(k)}(z)$ so deep 2-hop and 3-hop root causes are not exponentially crushed by branching dilution. Finally, we combine the hop waves with weights $\beta = [0.22, 0.24, 0.28, 0.26]$ and apply **Causal Sink Amplification** $\psi(v)$ to concrete functions/methods at the terminal leaves of causal call chains ($d_{\text{out}}^{\text{causal}}(v) = 0$), where low-level implementation bugs disproportionately reside:
+### 2.3 Budgeted Subgraph Extraction & Topo-KV Linearization
 
-$$p_{\text{PRISM}}(v) \propto \psi(v) \sum_{k=0}^{K} \beta_k f^{(k)}(v), \quad \psi(v) = \begin{cases} 1.45 & \text{if } \phi(v) \in \{\text{function}, \text{method}\} \text{ and } d_{\text{out}}^{\text{causal}}(v) = 0 \\ 1.15 & \text{if } \phi(v) \in \{\text{function}, \text{method}\} \text{ and } d_{\text{out}}^{\text{causal}}(v) > 0 \\ 0.65 & \text{if } \phi(v) = \text{class} \end{cases}$$
+Under token budget $B$ (e.g., 1200), we greedily select full bodies for top-ranked vertices up to $(1-\sigma)B$ ($\sigma = 0.35$) and fill the rest with signature/docstring skeletons of 1-hop structural bridges. **Topo-KV** then linearizes the induced dependency DAG via Kahn's sort ($v \prec u$ if $u$ calls, inherits, or imports $v$), so invariant upstream contracts occupy the static prefix $[0, L_{\text{static}}]$ and the mutable edit target sits at the suffix — maximizing KV-cache prefix stability across turns.
 
-### 2.3 Budgeted Subgraph Extraction & Topological KV-Prefix Routing (Topo-KV)
+### 2.4 Graph-Proximity Reward Shaping (GPRS)
 
-Given an on-device context budget $B$ (e.g., $B = 1200$ tokens per subgraph slice), we greedily select full bodies for top-ranked vertices $\mathcal{V}_{\text{act}}$ up to $(1 - \sigma)B$ tokens ($\sigma = 0.35$) and populate the remaining $\sigma B$ budget with signature-and-docstring skeletons $\mathcal{V}_{\text{skel}}$ of 1-hop structural bridges.
+For GRPO post-training with ground-truth patch nodes $V^*$, let $\mathcal{V}(\tau_i)$ be the nodes inspected by rollout $\tau_i$ and $d_{\mathcal{G}}$ the graph shortest-path distance. The composite reward:
 
-To maximize hardware KV-cache reuse across a $T$-turn repair session, **Topo-KV** constructs the induced dependency DAG over $\mathcal{V}_q^* = \mathcal{V}_{\text{skel}} \cup \mathcal{V}_{\text{act}}$ where $v \prec u$ whenever $u$ calls, inherits from, or imports $v$. Linearizing $\mathcal{V}_q^*$ via Kahn's topological sort with tie-breaking in ascending order of $p_{\text{PRISM}}(v)$ places invariant upstream contracts (interfaces, base classes, skeletons) in the static prefix $[0, L_{\text{static}}]$ and isolates the mutable downstream edit target $v^*$ at the suffix $[L_{\text{static}}, B]$.
+$$R_{\text{GPRS}}(\tau_i) = R_{\text{test}} + 0.5 e^{-0.7 \min_{v} d_{\mathcal{G}}(v, V^*)} + 0.15 \max\!\big(0,\ d_{\mathcal{G}}(v_{i,1}, V^*) - \min_{v} d_{\mathcal{G}}(v, V^*)\big) + R_{\text{AST}} - R_{\text{cycle}}$$
 
-### 2.4 Graph-Proximity Reward Shaping (GPRS) for Gemma 4 GRPO Post-Training
-
-When post-training Gemma 4 (4B/9B) with GRPO, the policy $\pi_{\theta}$ samples $G$ trajectories $\{\tau_1, \dots, \tau_G\}$ for issue $q$ with ground-truth patch nodes $V^* \subset \mathcal{V}$. Let $\mathcal{V}(\tau_i) = (v_{i,1}, \dots, v_{i,m})$ denote the sequence of code graph nodes inspected or edited by rollout $\tau_i$, and let $d_{\mathcal{G}}(v, V^*)$ be the shortest-path distance on $\mathcal{G}$ from $v$ to $V^*$. We define the composite GPRS reward:
-
-$$R_{\text{GPRS}}(\tau_i) = R_{\text{test}}(\tau_i) + 0.5 \exp\!\left(-0.7 \min_{v \in \mathcal{V}(\tau_i)} d_{\mathcal{G}}(v, V^*)\right) + 0.15 \max\!\left(0, d_{\mathcal{G}}(v_{i,1}, V^*) - \min_{v \in \mathcal{V}(\tau_i)} d_{\mathcal{G}}(v, V^*)\right) + R_{\text{AST}}(\tau_i) - R_{\text{cycle}}(\tau_i)$$
-
-where $R_{\text{test}}(\tau_i) \in \{0, 1\}$ is the unit-test outcome, $R_{\text{AST}}(\tau_i) \in \{-0.5, +0.25\}$ verifies Python AST syntax validity of the candidate patch, and $R_{\text{cycle}}(\tau_i) = 0.35 \left(1 - |\text{unique}(\mathcal{V}(\tau_i))| / |\mathcal{V}(\tau_i)|\right)$ penalizes repetitive search loops. Even when $\forall i, R_{\text{test}}(\tau_i) = 0$, $R_{\text{GPRS}}$ yields non-zero group advantage variance, guiding Gemma 4 along the code graph toward $V^*$.
+with $R_{\text{AST}} \in \{-0.5, +0.25\}$ (AST parse of the patch) and cycle penalty $R_{\text{cycle}} = 0.35\,(1 - |\text{unique}|/|\mathcal{V}(\tau_i)|)$. Even when all rollouts fail tests, $R_{\text{GPRS}}$ preserves non-zero group variance pointing toward $V^*$.
 
 ---
 
 ## 3. Experimental Setup & Results
 
-### 3.1 The `SWE-HOP-12` Multi-Hop Benchmark & Case Study (`SWE-HOP-01`)
+**On-device stack.** All model-involving results below were measured on a consumer laptop (Apple M2 Max, 64 GB) running Gemma 4 E4B at Q4-class quantization: llama.cpp (b12180, Metal) serving `google/gemma-4-E4B-it-qat-q4_0-gguf` for greedy repair and KV measurement, and MLX (`mlx-community/gemma-4-e4b-it-4bit`) for temperature-1.0 rollout sampling. Retrieval and reward machinery are model-free and run in < 3 s/scenario.
 
-To evaluate multi-hop structural localization without pretraining contamination, we constructed `SWE-HOP-12` (`evaluate_prism_benchmark.py`), comprising 12 multi-module Python repositories spanning 2-hop and 3-hop defects where the root-cause function shares minimal or zero lexical overlap with the bug report.
+### 3.1 The `SWE-HOP-12` Benchmark
 
-**Concrete 3-Hop Walkthrough (`SWE-HOP-01`):** An issue reports that `UserUpdateEndpoint.handle_patch` overwrites storage quota with `0.0` when `{'quota': None}` is passed, despite `AccountPayloadSerializer` configuring `DecimalQuotaField(allow_null=True)`.
-* **Hop 0 (Symptom Surface):** `api/views.py::UserUpdateEndpoint.handle_patch` (explicitly named in report; ranked #1 by BM25, Cosine RAG, and Uniform PageRank, but contains no bug).
-* **Hop 1 (Serializer Container):** `serializers/user_schema.py::AccountPayloadSerializer.validate_fields` calls `self.quota_field.run_parse(...)`.
-* **Hop 2 (Inherited Base Contract):** `DecimalQuotaField` inherits `run_parse` from `core/fields.py::BaseField.run_parse` (`INHERITS` + `CONTAINS`).
-* **Hop 3 (Root-Cause Sink):** `BaseField.run_parse` calls `core/coercion.py::normalize_numeric_primitive`, which erroneously returns `0.0` when `raw_val is None` (zero token overlap with the bug report). **NBD-PPR** propagates mass across the 3 directed hops and ranks `BaseField.run_parse` (#1) and `normalize_numeric_primitive` (#3), achieving `MRR = 1.0000` vs. `0.2500` for BM25.
+12 multi-module Python repositories with 2–3-hop defects where the root cause shares minimal or zero lexical overlap with the bug report: inheritance/coercion chains, stack-trace AST dialect propagation, decorator cache-key canonicalization, retry exception hierarchies, attention-mask polarity, config precedence, DFS cycle handling, JWT leeway sign errors, UTF-8 chunk splitting, multi-hunk diff offset drift, keyset cursor duplication, and LoRA alpha/rank scaling inversion. Each scenario ships a **behavioral test** executed against the patched repository (all 12 fail on the unpatched code).
 
-### 3.2 Main Localization & Ablation Results
+**Concrete 3-Hop Walkthrough (`SWE-HOP-01`):** The issue reports that `UserUpdateEndpoint.handle_patch` overwrites storage quota with `0.0` when `{'quota': None}` is passed, despite `DecimalQuotaField(allow_null=True)`.
+* **Hop 0 (Symptom):** `api/views.py::UserUpdateEndpoint.handle_patch` — named in the report and ranked #1 by BM25, Cosine RAG, and Uniform PageRank, but bug-free.
+* **Hop 1 (Serializer):** `AccountPayloadSerializer.validate_fields` calls `self.quota_field.run_parse(...)`.
+* **Hop 2 (Inherited Contract):** `DecimalQuotaField` inherits `run_parse` from `core/fields.py::BaseField.run_parse`.
+* **Hop 3 (Root-Cause Sink):** `core/coercion.py::normalize_numeric_primitive` returns `0.0` for `None` input — zero token overlap with the report. NBD-PPR propagates mass across all 3 hops and ranks the root cause #1 (MRR = 1.0000 vs. 0.125 for BM25).
 
-Table 1 compares **PRISM-Gemma (Full NBD-PPR)** against standard retrieval baselines and architectural ablations across all 12 scenarios.
+### 3.2 Structural Localization (Model-Free)
 
-| Method / Ablation Variant | Recall@1 | Recall@3 | Recall@5 | MRR | Root-Cause Recall@3 | Mean Root-Cause Rank (↓) |
-| :--- | :---: | :---: | :---: | :---: | :---: | :---: |
-| BM25 / Lexical `grep` | 0.0000 | 0.3333 | 0.7083 | 0.3507 | 16.67% | 4.75 |
-| Dense Token Cosine RAG | 0.0000 | 0.2917 | 0.6250 | 0.2861 | 25.00% | 5.17 |
-| Uniform RepoMap (Undirected PageRank) | 0.0000 | 0.2917 | 0.6667 | 0.2786 | 25.00% | 5.17 |
-| **PRISM-Gemma (Full NBD-PPR, K=3)** | **0.3750** | **0.7917** | **0.9167** | **0.8111** | **83.33%** | **2.75** |
-| *Ablation:* w/o Non-Backtracking (Undirected Walk) | 0.3333 | 0.7500 | 0.8750 | 0.7736 | 75.00% | 2.67 |
-| *Ablation:* w/o Typed Edge Conductance | 0.3750 | 0.7917 | 0.9167 | 0.8111 | 83.33% | 2.83 |
-| *Ablation:* w/o Causal Sink Amplification | 0.3750 | 0.7917 | 0.8333 | 0.8056 | 83.33% | 3.08 |
-| *Ablation:* 1-Hop Neighborhood Only (K=1) | 0.0417 | 0.4583 | 0.7917 | 0.4090 | 41.67% | 4.33 |
-| *Ablation:* 2-Hop Neighborhood Only (K=2) | 0.2500 | 0.6250 | 0.7500 | 0.6349 | 75.00% | 3.25 |
+| Method / Ablation | Recall@1 | Recall@3 | Recall@5 | MRR | Root-Cause Recall@3 |
+| :--- | :---: | :---: | :---: | :---: | :---: |
+| BM25 / Lexical `grep` | 0.0000 | 0.3333 | 0.7083 | 0.3507 | 16.67% |
+| Dense Token Cosine RAG | 0.0000 | 0.2917 | 0.6250 | 0.2861 | 25.00% |
+| Uniform RepoMap (Undirected PageRank) | 0.0000 | 0.2917 | 0.6667 | 0.2786 | 25.00% |
+| **PRISM-Gemma (Full NBD-PPR, $K=3$)** | **0.3750** | **0.7917** | **0.9167** | **0.8111** | **83.33%** |
+| w/o Non-Backtracking | 0.3333 | 0.7500 | 0.8750 | 0.7736 | 75.00% |
+| w/o Typed Edge Conductance | 0.3750 | 0.7917 | 0.9167 | 0.8111 | 83.33% |
+| w/o Causal Sink Amplification | 0.3750 | 0.7917 | 0.8333 | 0.8056 | 83.33% |
+| $K=1$ only | 0.0417 | 0.4583 | 0.7917 | 0.4090 | 41.67% |
+| $K=2$ only | 0.2500 | 0.6250 | 0.7500 | 0.6349 | 75.00% |
 
-**Per-Scenario Breakdown:** Across `SWE-HOP-01` through `SWE-HOP-12`, PRISM-Gemma achieves `MRR = 1.0000` on 10 of 12 scenarios (`SWE-HOP-01`, `03`, `04`, `05`, `06`, `07`, `09`, `10`, `11`, `12`), whereas BM25 and Uniform RepoMap score `Recall@1 = 0.0000` on all 12 scenarios (`12/12` pinned at the 0-hop symptom surface).
+Lexical and undirected-graph baselines invariably rank the 0-hop symptom first (Recall@1 = 0); truncating diffusion to $K=1$ collapses MRR to 0.4090.
 
-### 3.3 Hardware Efficiency (Topo-KV) & GRPO Reward Shaping (GPRS)
+### 3.3 End-to-End Repair with Real On-Device Gemma 4
 
-Table 2 summarizes our 5-turn iterative patch-refinement KV-cache simulation, consumer hardware prefill speedup for Gemma 4 (4B, 9B, 27B-Int4), and $G=6$ rollout GRPO reward analysis across all 12 repositories.
+For each scenario, the model receives the bug report plus a retrieval context — top-5 BM25 bodies (grep-style agent) vs. the PRISM NBD-PPR + Topo-KV subgraph — and must (a) name the root-cause `file::symbol` and (b) emit the complete corrected file. We materialize the patched repo and run the behavioral test (greedy decoding, max 3000 tokens).
 
-| Evaluation Dimension | Baseline Policy | PRISM-Gemma Policy | Improvement |
-| :--- | :---: | :---: | :---: |
-| **Multi-Turn KV-Cache Prefix Hit Rate** | 62.44% (Relevance Sort) / 62.33% (File Sort) | **99.20%** (`Topo-KV`) | **+36.76% abs. (1.59× reuse)** |
-| **5-Turn Prefill Token Re-Computation (B=1200)** | 1,803 tokens re-encoded | **38 tokens re-encoded** | **47.4× fewer uncached tokens** |
-| **0-Pass GRPO Informative Gradient Groups** | 0.0% (Binary Test Reward) | **100.0%** (`GPRS`) | **+100.0% active RL groups** |
-| **Kendall Rank Concordance with Oracle Progress** | 0.3333 (Binary Test Reward) | **0.8500** (`GPRS`) | **+0.5167 rank correlation** |
+| Metric (n = 12, Gemma 4 E4B QAT q4_0, greedy) | BM25/`grep` context | PRISM context |
+| :--- | :---: | :---: |
+| Root cause correctly identified | 91.67% | **100.00%** |
+| Patch AST-valid | 100.00% | **100.00%** |
+| **Resolve rate (behavioral test passes)** | 75.00% | **83.33%** |
+| Mean TTFT (prefill) | 422 ms | 443 ms |
+| Mean decode speed | 72.0 tok/s | 71.8 tok/s |
 
-By pinning upstream contracts to the prefix and isolating the mutable edit target at the suffix, **Topo-KV** reaches **99.20%** prefix reuse across turns—reducing cumulative 5-turn uncached prefill tokens from 1,803 to 38 tokens per issue. Simultaneously, **GPRS** converts 100% of zero-pass rollout groups into informative gradient updates with **0.8500** rank concordance against oracle repair progress.
+The retrieval layer, not the model, is the binding constraint: with BM25 context the agent confidently fixes the wrong function (e.g., in `SWE-HOP-01` it coerces `None` deeper instead of preserving it); with PRISM context the same weights repair the true root cause. The residual failures (2/12 under both policies) are full-file-rewrite import drops — a known small-model weakness orthogonal to retrieval.
+
+### 3.4 Measured KV-Cache Prefix Reuse (Live Server)
+
+We replay 5-turn repair sessions against the live llama.cpp server, re-sending the full context each turn with the edit target modified from turn 3 (aider-style stateless re-sends), and read the server's actual cache accounting (`timings.cache_n`):
+
+| Context ordering (measured, turns 2–5) | Prefix hit rate | Mean turn prefill |
+| :--- | :---: | :---: |
+| Relevance-descending | 42.56% | 369.1 ms |
+| Alphabetical file order | 32.88% | 416.1 ms |
+| **Topo-KV** | **84.95%** | **124.0 ms** |
+
+Topo-KV's immutable-contracts-first ordering keeps the cached prefix intact when the edit target mutates, cutting per-turn prefill latency **~3×**. One honest boundary: llama.cpp only retains cross-request prompt-cache entries above a minimum sequence length (~512 tokens); scenarios whose full context falls below that floor (2 of 12) show no reuse under *any* ordering — a systems-level argument for packing contexts densely, which Topo-KV's budgeted skeleton filling already does.
+
+### 3.5 GPRS on Real Sampled Rollouts (Zero-Pass Regime)
+
+We sample $G = 6$ rollouts per scenario (temperature 1.0, top-$p$ 0.95) from the on-device model — 72 real trajectories with thinking traces. This regime is genuinely reward-starved: only **1/72** rollouts passes its behavioral test. Scoring each trajectory with binary vs. GPRS rewards:
+
+| Signal across 12 rollout groups | Binary $R_{\text{test}}$ | GPRS $R_{\text{GPRS}}$ |
+| :--- | :---: | :---: |
+| Groups with informative (non-zero-variance) gradients | 8.3% | **91.7%** |
+| Kendall $\tau$ with oracle rollout quality (per-scenario mean) | — | **0.796** |
+
+GPRS separates "reached the root cause but wrote an invalid patch" from "looped at the symptom" even when every rollout fails — exactly the gradient GRPO needs on compact models.
 
 ---
 
 ## 4. Related Work
 
-* **Repository-Level Coding Agents & Graphs:** SWE-agent (Yang et al., 2024), Agentless (Xia et al., 2024), and AutoCodeRover (Zhang et al., 2024) rely on iterative shell exploration or hierarchical prompting over cloud models. RepoGraph (Ouyang et al., 2024) and Aider's RepoMap apply standard Personalized PageRank over code graphs. We show that undirected PageRank suffers from *symptom pinning* and *2-cycle backtracking* on multi-hop defects, which PRISM-Gemma resolves via Non-Backtracking Causal Diffusion (NBD-PPR).
-* **Spectral Graph Diffusion & Non-Backtracking Walks:** Personalized PageRank (Page et al., 1999; Jeh & Widom, 2003), heat-kernel diffusion (Chung, 2007), and non-backtracking operators (Alon et al., 2007; Krzakala et al., 2013) underpin modern graph mining. PRISM-Gemma adapts non-backtracking wave propagation to heterogeneous code graphs with regime-conditioned conductances.
-* **Prefix Caching & RL for Code:** PagedAttention (Kwon et al., 2023) and RadixAttention (Zheng et al., 2024) reuse KV caches across shared prompt prefixes, while GRPO (Shao et al., 2024; Guo et al., 2025) enables critic-free RL. PRISM-Gemma bridges code-graph topology with both systems via **Topo-KV** and **GPRS**.
+* **Repository-level agents & code graphs:** SWE-agent, Agentless, and AutoCodeRover rely on iterative shell exploration or hierarchical prompting over cloud models; RepoGraph and Aider's RepoMap apply standard PPR over symbol graphs. We identify and fix two failure modes of undirected PPR (symptom pinning, 2-cycle backtracking) for multi-hop defects.
+* **Spectral graph diffusion & non-backtracking walks:** Personalized PageRank (Page et al., 1999; Jeh & Widom, 2003), heat-kernel diffusion (Chung, 2007), and non-backtracking operators (Alon et al., 2007; Krzakala et al., 2013) underpin modern graph mining; PRISM-Gemma adapts non-backtracking propagation to heterogeneous code graphs with regime-conditioned conductances.
+* **Prefix caching & RL for code:** PagedAttention and RadixAttention reuse KV across shared prompt prefixes; GRPO (Shao et al., 2024; DeepSeek-R1) enables critic-free RL but degrades when groups have zero reward variance. Topo-KV and GPRS bridge code-graph topology with both systems.
+* **SWE-bench** motivates repository-level evaluation; `SWE-HOP-12` targets the multi-hop localization slice with contamination-free synthetic repos and executable behavioral tests.
 
 ---
 
 ## 5. Conclusion & Verifiability
 
-PRISM-Gemma demonstrates that compact on-device Gemma 4 models can overcome tight context limits and multi-hop localization traps via principled spectral graph reasoning. All source code and experiments run in under 3 seconds with zero external dependencies via `python3 evaluate_prism_benchmark.py`, generating `benchmark_results.json`.
+PRISM-Gemma shows that compact on-device models can overcome multi-hop localization traps, context-window thrashing, and reward starvation via principled spectral graph reasoning — and it proves each claim against a **real on-device Gemma 4**, not a simulator. Reproduce everything with:
+
+```bash
+python3 evaluate_prism_benchmark.py                 # Tables: localization, ablations (model-free, <1 min)
+python3 e2e_agent_experiment.py e2e  --server <llama.cpp URL>   # Table 3.3 (real model)
+python3 e2e_agent_experiment.py kv   --server <llama.cpp URL>   # Table 3.4 (measured cache_n)
+python3 e2e_agent_experiment.py gprs --backend mlx              # Table 3.5 (real rollouts)
+```
+
+Raw per-run records (`e2e_results/*.jsonl`, `e2e_summary.json`) ship with the repo. Limitations: `SWE-HOP-12` is small and synthetic (public-benchmark scaling is future work); end-to-end gains are single-run greedy; GPRS is validated as a reward signal, with full GRPO training runs left to future work.
 
 ---
 
@@ -172,10 +193,11 @@ PRISM-Gemma demonstrates that compact on-device Gemma 4 models can overcome tigh
 5. Jimenez, C. E., et al. (2024). SWE-bench: Can Language Models Resolve Real-World GitHub Issues? *ICLR*.
 6. Krzakala, F., et al. (2013). Spectral redemption in clustering sparse networks. *PNAS*, 110(52), 20935–20940.
 7. Kwon, W., et al. (2023). Efficient Memory Management for Large Language Model Serving with PagedAttention. *ACM SOSP*.
-8. Markowitz, E., Perozzi, B., Rózemberczki, B., Cameron, G., Hemmati, H., Li, Y., Galkin, M., Farhadi, M., Holbrook, R., & Oldacre, A. (2026). Google - The Gemma 4 Developer Agent Paper Track. *Kaggle*.
-9. Ouyang, S., et al. (2024). RepoGraph: Enhancing AI Software Engineering with Repository-level Code Graph. *arXiv:2410.14684*.
-10. Shao, Z., et al. (2024). DeepSeekMath: Pushing the Limits of Mathematical Reasoning in Open Language Models. *arXiv:2402.03300*.
-11. Xia, C. S., et al. (2024). Agentless: Demystifying LLM-based Software Engineering Agents. *arXiv:2407.01489*.
-12. Yang, J., et al. (2024). SWE-agent: Agent-Computer Interfaces Enable Automated Software Engineering. *NeurIPS*.
-13. Zhang, Y., et al. (2024). AutoCodeRover: Autonomous Program Improvement. *ACM ISSTA*.
-14. Zheng, L., et al. (2024). SGLang: Efficient Execution of Structured Language Model Programs. *NeurIPS*.
+8. Ouyang, S., et al. (2024). RepoGraph: Enhancing AI Software Engineering with Repository-level Code Graph. *arXiv:2410.14684*.
+9. Shao, Z., et al. (2024). DeepSeekMath: Pushing the Limits of Mathematical Reasoning in Open Language Models. *arXiv:2402.03300*.
+10. Xia, C. S., et al. (2024). Agentless: Demystifying LLM-based Software Engineering Agents. *arXiv:2407.01489*.
+11. Yang, J., et al. (2024). SWE-agent: Agent-Computer Interfaces Enable Automated Software Engineering. *NeurIPS*.
+12. Zhang, Y., et al. (2024). AutoCodeRover: Autonomous Program Improvement. *ACM ISSTA*.
+13. Zheng, L., et al. (2024). SGLang: Efficient Execution of Structured Language Model Programs. *NeurIPS*.
+14. Gerganov, G., et al. llama.cpp: LLM inference in C/C++. *github.com/ggml-org/llama.cpp* (b12180).
+15. Hannun, A., et al. (2023). MLX: Efficient and flexible machine learning on Apple silicon. *github.com/ml-explore/mlx*.

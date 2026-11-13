@@ -1,0 +1,44 @@
+{
+  "e2e": {
+    "bm25": {
+      "n": 12,
+      "root_cause_identified_pct": 91.67,
+      "patch_ast_valid_pct": 100.0,
+      "resolve_rate_pct": 75.0,
+      "mean_ttft_ms": 422.3,
+      "mean_decode_tps": 72.01,
+      "mean_prompt_tokens": 603.4
+    },
+    "prism": {
+      "n": 12,
+      "root_cause_identified_pct": 100.0,
+      "patch_ast_valid_pct": 100.0,
+      "resolve_rate_pct": 83.33,
+      "mean_ttft_ms": 442.5,
+      "mean_decode_tps": 71.83,
+      "mean_prompt_tokens": 872.8
+    }
+  },
+  "kv_measured": {
+    "alphabetical": {
+      "measured_prefix_hit_rate_pct": 32.88,
+      "mean_turn_prompt_ms": 416.1
+    },
+    "prism_topo_kv": {
+      "measured_prefix_hit_rate_pct": 84.95,
+      "mean_turn_prompt_ms": 124.0
+    },
+    "relevance_desc": {
+      "measured_prefix_hit_rate_pct": 42.56,
+      "mean_turn_prompt_ms": 369.1
+    }
+  },
+  "gprs_real_rollouts": {
+    "scenarios": 12,
+    "rollouts": 72,
+    "informative_groups_binary_pct": 8.3,
+    "informative_groups_gprs_pct": 91.7,
+    "mean_per_scenario_kendall_tau": 0.7963,
+    "global_kendall_tau_vs_oracle": 0.6627
+  }
+}
