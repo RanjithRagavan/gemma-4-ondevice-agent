@@ -1,0 +1,19 @@
+agent_class: LlmAgent
+name: code_locator
+model: __MODEL_ALIAS__
+description: >-
+  Read-only repository navigator and PRISM multi-hop code-graph analyzer.
+  Delegates file searching, symbol graph traversal, and test discovery into an
+  isolated context window and returns a concise Localization Dossier containing
+  exact file paths, 1-indexed line ranges, root-cause call chains, and relevant
+  existing test files.
+instruction: !include prompts/code_locator.md
+generate_content_config: !include configs/analyzer_sampling.yaml
+skills:
+  - skills/prism_swe_toolkit
+tools:
+  - search_similar_code
+  - get_code_neighbors
+  - get_code_subgraph
+  - read_file
+  - run_command

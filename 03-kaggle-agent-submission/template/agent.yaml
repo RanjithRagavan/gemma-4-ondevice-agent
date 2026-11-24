@@ -1,0 +1,27 @@
+agent_class: LlmAgent
+name: prism_gemma_coder
+model: __MODEL_ALIAS__
+description: >-
+  Autonomous on-device software engineering agent powered by PRISM multi-hop
+  code-graph localization, isolated read-only exploration, TDD reproduction,
+  and pre-submission diff hygiene verification.
+instruction: !include prompts/system.md
+generate_content_config: !include configs/coder_sampling.yaml
+skills:
+  - skills/prism_swe_toolkit
+tools:
+  - agent_tool:
+      config_path: sub_agents/code_locator.yaml
+      skip_summarization: false
+  - agent_tool:
+      config_path: sub_agents/patch_reviewer.yaml
+      skip_summarization: false
+  - search_similar_code
+  - get_code_neighbors
+  - get_code_subgraph
+  - read_file
+  - edit_file
+  - write_file
+  - run_command
+  - get_status
+  - submit_patch

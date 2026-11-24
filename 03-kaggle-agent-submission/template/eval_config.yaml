@@ -1,0 +1,8 @@
+# Per-task evaluation budget and timeout overrides loaded by scripts/inference.py
+# Tuned for the 12-hour total budget across ~120 test tasks (~6 min average, 8 min hard cap)
+# while giving generous room for multi-turn localization, TDD reproduction, editing, and verification.
+evaluation:
+  timeout_seconds: 120
+  max_tool_calls: 45
+  max_time_minutes: 8
+  max_turns: 80

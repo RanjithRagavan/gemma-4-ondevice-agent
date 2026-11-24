@@ -1,0 +1,7 @@
+# Generation config for read-only analyzer and reviewer sub-agents.
+temperature: 0.1
+top_p: 0.95
+max_output_tokens: 8192
+thinking_config:
+  thinking_budget: 2048
+  include_thoughts: false
