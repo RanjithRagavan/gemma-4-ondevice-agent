@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Builds and strictly validates ready-to-upload Kaggle submission.zip archives for
-Google - The Gemma 4 Developer Agent Competition:
+Google - The Gemma 4 Developer Agent Competition (100% schema-aligned with official sample_submission):
 
 1. dist/submission_31b.zip -> gemma-4-31b-it-qat-w4a16-ct (Main Leaderboard — $37K 1st Place)
 2. dist/submission_e4b.zip -> gemma-4-e4b-it-qat-w4a16-ct (Small Model Bonus Prize — $10K + Main)
@@ -25,19 +25,21 @@ DIST_DIR = BASE_DIR / "dist"
 BUILDS: Dict[str, Dict] = {
     "submission_31b.zip": {
         "model": "gemma-4-31b-it-qat-w4a16-ct",
-        "coder_thinking_budget": 3072,
+        "coder_thinking_budget": 4096,
         "analyzer_thinking_budget": 2048,
-        "max_time_minutes": 8,
-        "max_tool_calls": 45,
-        "max_turns": 80,
+        "timeout_seconds": 90,
+        "max_time_minutes": 4,
+        "max_tool_calls": 25,
+        "max_turns": 50,
     },
     "submission_e4b.zip": {
         "model": "gemma-4-e4b-it-qat-w4a16-ct",
-        "coder_thinking_budget": 2048,
+        "coder_thinking_budget": 3072,
         "analyzer_thinking_budget": 1536,
-        "max_time_minutes": 6,
-        "max_tool_calls": 40,
-        "max_turns": 70,
+        "timeout_seconds": 90,
+        "max_time_minutes": 3,
+        "max_tool_calls": 22,
+        "max_turns": 45,
     },
 }
 
@@ -54,11 +56,6 @@ def build_variant(zip_name: str, cfg: Dict) -> Path:
             ignore=shutil.ignore_patterns("__pycache__", "*.pyc", ".DS_Store"),
         )
 
-        # Remove unused top-level analyzer_sampling.yaml if present
-        unused = stage / "configs" / "analyzer_sampling.yaml"
-        if unused.exists():
-            unused.unlink()
-
         # Substitute model alias across all YAML files
         for yaml_file in stage.rglob("*.yaml"):
             text = yaml_file.read_text(encoding="utf-8")
@@ -69,7 +66,7 @@ def build_variant(zip_name: str, cfg: Dict) -> Path:
         coder_cfg = stage / "configs" / "coder_sampling.yaml"
         coder_cfg.write_text(
             coder_cfg.read_text(encoding="utf-8").replace(
-                "thinking_budget: 3072", f"thinking_budget: {cfg['coder_thinking_budget']}"
+                "thinking_budget: 4096", f"thinking_budget: {cfg['coder_thinking_budget']}"
             ),
             encoding="utf-8",
         )
@@ -84,7 +81,7 @@ def build_variant(zip_name: str, cfg: Dict) -> Path:
         eval_cfg.write_text(
             (
                 "evaluation:\n"
-                "  timeout_seconds: 120\n"
+                f"  timeout_seconds: {cfg['timeout_seconds']}\n"
                 f"  max_tool_calls: {cfg['max_tool_calls']}\n"
                 f"  max_time_minutes: {cfg['max_time_minutes']}\n"
                 f"  max_turns: {cfg['max_turns']}\n"

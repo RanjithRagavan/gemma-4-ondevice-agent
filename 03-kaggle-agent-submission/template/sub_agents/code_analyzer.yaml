@@ -1,0 +1,13 @@
+name: code_analyzer_agent
+description: >-
+  Read-only PRISM multi-hop code-graph and repository analyzer. Locates exact
+  root-cause files, line ranges, base classes, and call chains in an isolated
+  context window without bloating the coder agent's history.
+model: __MODEL_ALIAS__
+instruction: !include prompts/code_locator.md
+tools:
+  - read_file
+  - search_similar_code
+  - get_code_neighbors
+  - get_code_subgraph
+generate_content_config: !include configs/analyzer_sampling.yaml
