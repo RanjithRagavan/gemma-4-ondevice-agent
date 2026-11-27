@@ -1,8 +1,8 @@
-# Generation config matched to vLLM Gemma 4 reasoning + tool-call parser.
-# Note: Omit thinking_level for vLLM OpenAI-compatible /v1 serving.
-temperature: 0.15
+# Generation config optimized for high-velocity, accurate multi-turn SWE execution on vLLM Gemma 4.
+# thinking_budget: 2048 doubles turn speed and fits 2x more turns before ADK's 14,336-token compaction.
+temperature: 0.05
 top_p: 0.95
 max_output_tokens: 16384
 thinking_config:
-  thinking_budget: 4096
+  thinking_budget: 2048
   include_thoughts: true
